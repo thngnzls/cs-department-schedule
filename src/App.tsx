@@ -1793,6 +1793,21 @@ export default function App() {
     };
   }, [tabularScheduleItems]);
 
+  const groupedByDay = useMemo(() => {
+    const daysToShow = (selectedDayFilter === 'ALL' ? WEEKDAYS : [selectedDayFilter]) as Weekday[];
+
+    return daysToShow
+      .map((day) => {
+        const items = tabularScheduleItems.filter((entry) => entry.day === day);
+        return {
+          day,
+          dayFullName: DAY_FULL_NAMES[day] || day,
+          items,
+        };
+      })
+      .filter((group) => group.items.length > 0);
+  }, [tabularScheduleItems, selectedDayFilter]);
+
   const filteredConsultations = useMemo(() => {
     return CS_CONSULTATION_HOURS.filter((faculty) => {
       const q = consultationSearch.trim().toLowerCase();
@@ -2438,148 +2453,110 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* VIEW MODE 2: CONCISE TABULAR FORMAT (Straight to the Point, Zero Vacant Space Wasted, High Legibility for Screenshots & 1-Page Short Bond Paper) */}
+                    {/* VIEW MODE 2: SIMPLE & REFINED INSTITUTIONAL TABULAR SCHEDULE (Matching Consultation Sheet Format with Refined Styling) */}
                     {(scheduleFormat === 'table' || scheduleFormat === 'blocks') && (
-                      <div className="flex flex-col gap-4">
-                        {/* 1. High-Density Quick Metric Badges */}
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
-                          <div className="bg-white rounded-[16px] p-3 sm:p-3.5 border border-blue-200/90 shadow-2xs flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200/80 text-blue-700 flex items-center justify-center shrink-0">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2" />
-                                <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" />
-                                <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" />
-                                <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" />
-                              </svg>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Classes</span>
-                              <span className="font-heading font-black text-[17px] sm:text-[19px] text-[#0f2854] leading-tight">
-                                {tabularStats.totalClasses} Meetings
-                              </span>
-                            </div>
+                      <div className="flex flex-col gap-3.5">
+                        {/* Summary Bar */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 px-4 py-3 bg-slate-50 border border-slate-300 rounded-xl">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-[#0f2854]" />
+                            <span className="font-heading font-black text-[13.5px] sm:text-[14.5px] text-slate-900">
+                              {currentProfessor.name} — Class Schedule
+                            </span>
                           </div>
-
-                          <div className="bg-white rounded-[16px] p-3 sm:p-3.5 border border-blue-200/90 shadow-2xs flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200/80 text-cyan-700 flex items-center justify-center shrink-0">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                                <polyline points="12 6 12 12 16 14" strokeWidth="2" strokeLinecap="round" />
-                              </svg>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Weekly Load</span>
-                              <span className="font-heading font-black text-[17px] sm:text-[19px] text-[#0f2854] leading-tight">
-                                {tabularStats.totalHours.toFixed(1)} Hours
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="bg-white rounded-[16px] p-3 sm:p-3.5 border border-blue-200/90 shadow-2xs flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 flex items-center justify-center shrink-0">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                              </svg>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Courses Taught</span>
-                              <span className="font-heading font-black text-[17px] sm:text-[19px] text-[#0f2854] leading-tight">
-                                {tabularStats.distinctCourses} Subjects
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="bg-white rounded-[16px] p-3 sm:p-3.5 border border-blue-200/90 shadow-2xs flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200/80 text-teal-700 flex items-center justify-center shrink-0">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Teaching Days</span>
-                              <span className="font-heading font-black text-[17px] sm:text-[19px] text-[#0f2854] leading-tight">
-                                {tabularStats.activeDays} Days / Week
-                              </span>
-                            </div>
+                          <div className="flex items-center gap-2.5 text-[11.5px] sm:text-[12px] font-bold text-slate-600">
+                            <span className="px-2.5 py-0.5 rounded-md bg-white border border-slate-300 text-[#0f2854] font-black">
+                              {tabularStats.totalClasses} Total Classes
+                            </span>
+                            <span className="px-2.5 py-0.5 rounded-md bg-white border border-slate-300 text-slate-800 font-extrabold">
+                              {tabularStats.totalHours.toFixed(1)} Contact Hours
+                            </span>
+                            <span className="hidden md:inline text-slate-400">|</span>
+                            <span className="hidden md:inline text-slate-500 font-semibold">
+                              1st Sem · SY 2026-2027
+                            </span>
                           </div>
                         </div>
 
-                        {/* 2. Space-Efficient Tabular Schedule (Fits cleanly on 1-Page Short Bond Paper) */}
-                        <div className="w-full bg-white rounded-[22px] border-2 border-blue-200/90 shadow-xs overflow-hidden">
-                          <div className="overflow-x-auto custom-timetable-scrollbar">
-                            <table className="w-full text-left border-collapse min-w-[860px]">
-                              <thead>
-                                <tr className="bg-gradient-to-r from-[#0a1b38] to-[#0f2854] text-white border-b border-blue-300">
-                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
-                                    Day
-                                  </th>
-                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
-                                    Time Range
-                                  </th>
-                                  <th scope="col" className="py-3.5 px-3 text-[12px] font-heading font-black tracking-wider uppercase text-center">
-                                    Duration
-                                  </th>
-                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
-                                    Course Code
-                                  </th>
-                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
-                                    Subject Title & Description
-                                  </th>
-                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase text-center">
-                                    Section
-                                  </th>
-                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
-                                    Room / Venue
-                                  </th>
-                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase text-center">
-                                    Type
-                                  </th>
-                                </tr>
-                              </thead>
+                        {/* Consultation-Style Academic Table */}
+                        <div className="border-2 border-slate-900 bg-white rounded-xl overflow-x-auto shadow-xs">
+                          <table className="w-full border-collapse text-left min-w-[780px]">
+                            <thead>
+                              <tr className="border-b-2 border-slate-900 bg-slate-100">
+                                <th
+                                  scope="col"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[15%]"
+                                >
+                                  Day
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[18%]"
+                                >
+                                  Time
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[12%]"
+                                >
+                                  Course Code
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider"
+                                >
+                                  Subject Title / Description
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider text-center w-[10%]"
+                                >
+                                  Section
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[18%]"
+                                >
+                                  Room / Venue
+                                </th>
+                                <th
+                                  scope="col"
+                                  className="p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider text-center w-[11%]"
+                                >
+                                  Type
+                                </th>
+                              </tr>
+                            </thead>
 
-                              {filteredTabularItems.length === 0 ? (
-                                <tbody>
-                                  <tr>
-                                    <td colSpan={8} className="py-14 text-center bg-slate-50/50">
-                                      <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
-                                        <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
-                                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                          </svg>
-                                        </div>
-                                        <p className="font-heading font-bold text-[15px] text-[#0c1f38]">
-                                          No classes scheduled on {selectedDayFilter === 'ALL' ? 'this timetable' : (DAY_FULL_NAMES[selectedDayFilter as Weekday] || selectedDayFilter)}.
-                                        </p>
-                                        {selectedDayFilter !== 'ALL' && (
-                                          <button
-                                            type="button"
-                                            onClick={() => setSelectedDayFilter('ALL')}
-                                            className="mt-2 px-4 py-2 rounded-lg bg-[#0f2854] text-white text-[12px] font-heading font-extrabold hover:bg-[#1e58b8] transition-colors cursor-pointer shadow-2xs"
-                                          >
-                                            View Entire Weekly Schedule
-                                          </button>
-                                        )}
-                                      </div>
-                                    </td>
-                                  </tr>
-                                </tbody>
+                            <tbody>
+                              {groupedByDay.length === 0 ? (
+                                <tr>
+                                  <td colSpan={7} className="p-10 text-center bg-slate-50 text-slate-500 font-medium italic">
+                                    No classes scheduled for {selectedDayFilter === 'ALL' ? 'this professor' : (DAY_FULL_NAMES[selectedDayFilter as Weekday] || selectedDayFilter)}.
+                                    {selectedDayFilter !== 'ALL' && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setSelectedDayFilter('ALL')}
+                                        className="block mx-auto mt-2 px-3.5 py-1.5 rounded-lg bg-[#0f2854] text-white text-[12px] font-heading font-bold not-italic cursor-pointer hover:bg-[#1e58b8]"
+                                      >
+                                        Show All Days
+                                      </button>
+                                    )}
+                                  </td>
+                                </tr>
                               ) : (
-                                <tbody className="divide-y divide-blue-100/90 text-slate-800">
-                                  {filteredTabularItems.map((entry, idx) => {
-                                    const dayPill = DAY_COLOR_PILLS[entry.day] || {
-                                      bg: 'bg-blue-100 text-blue-900 border-blue-300',
-                                      text: 'text-blue-900',
-                                      border: 'border-blue-300',
-                                    };
+                                groupedByDay.map((group) =>
+                                  group.items.map((entry, iIdx) => {
+                                    const isLastInGroup = iIdx === group.items.length - 1;
 
                                     return (
                                       <tr
-                                        key={`${entry.day}-${entry.item.courseCode}-${entry.originalIndex}-${idx}`}
+                                        key={`${group.day}-${entry.item.courseCode}-${entry.originalIndex}-${iIdx}`}
                                         role="button"
                                         tabIndex={0}
                                         onClick={() => setSelectedClassModal({
                                           item: entry.item,
-                                          day: entry.day,
+                                          day: group.day,
                                           formattedTime: entry.formattedTime,
                                           profName: currentProfessor.name,
                                           profTitle: currentProfessor.title,
@@ -2591,7 +2568,7 @@ export default function App() {
                                             e.preventDefault();
                                             setSelectedClassModal({
                                               item: entry.item,
-                                              day: entry.day,
+                                              day: group.day,
                                               formattedTime: entry.formattedTime,
                                               profName: currentProfessor.name,
                                               profTitle: currentProfessor.title,
@@ -2600,96 +2577,79 @@ export default function App() {
                                             });
                                           }
                                         }}
-                                        className="hover:bg-blue-50/70 transition-colors cursor-pointer group even:bg-slate-50/40"
+                                        className={`hover:bg-blue-50/70 transition-colors cursor-pointer group ${isLastInGroup ? 'border-b-2 border-slate-900' : 'border-b border-slate-200'
+                                          }`}
                                         title={`Click to view details for ${entry.item.courseCode} - ${entry.item.subject}`}
                                       >
-                                        {/* 1. DAY */}
-                                        <td className="py-3.5 px-4 whitespace-nowrap">
-                                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-heading font-black border uppercase tracking-wider ${dayPill.bg}`}>
-                                            <span>{entry.day}</span>
-                                            <span className="text-[10.5px] font-bold opacity-80 hidden sm:inline">· {DAY_FULL_NAMES[entry.day]}</span>
-                                          </span>
-                                        </td>
+                                        {/* 1. DAY (rowSpan for all classes of this day) */}
+                                        {iIdx === 0 && (
+                                          <td
+                                            rowSpan={group.items.length}
+                                            className="border-r-2 border-slate-900 p-3 sm:p-3.5 align-top bg-slate-50/80"
+                                          >
+                                            <div className="flex flex-col">
+                                              <span className="font-heading font-black text-[13.5px] sm:text-[14.5px] text-[#0f2854] uppercase tracking-wide">
+                                                {group.dayFullName}
+                                              </span>
+                                              <span className="text-[11px] font-bold text-slate-500 uppercase mt-0.5">
+                                                {group.items.length} {group.items.length === 1 ? 'Class' : 'Classes'}
+                                              </span>
+                                            </div>
+                                          </td>
+                                        )}
 
                                         {/* 2. TIME */}
-                                        <td className="py-3.5 px-4 whitespace-nowrap">
-                                          <div className="flex items-center gap-1.5 font-sans font-black text-[13px] sm:text-[14px] text-slate-900">
-                                            <svg className="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                                              <polyline points="12 6 12 12 16 14" strokeWidth="2" strokeLinecap="round" />
-                                            </svg>
-                                            <span>{entry.formattedTime}</span>
-                                          </div>
+                                        <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-sans font-extrabold text-[12.5px] sm:text-[13.5px] text-slate-900 whitespace-nowrap">
+                                          {entry.formattedTime}
                                         </td>
 
-                                        {/* 3. DURATION */}
-                                        <td className="py-3.5 px-3 text-center whitespace-nowrap">
-                                          <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-extrabold border border-slate-200">
-                                            {entry.durationHours % 1 === 0 ? `${entry.durationHours} hr${entry.durationHours > 1 ? 's' : ''}` : `${entry.durationHours.toFixed(1)} hrs`}
-                                          </span>
+                                        {/* 3. COURSE CODE */}
+                                        <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-heading font-black text-[13.5px] sm:text-[14.5px] text-[#0f2854] whitespace-nowrap">
+                                          {entry.item.courseCode}
                                         </td>
 
-                                        {/* 4. COURSE CODE */}
-                                        <td className="py-3.5 px-4 whitespace-nowrap">
-                                          <span className="font-heading font-black text-[14.5px] sm:text-[15.5px] text-[#0f2854] bg-blue-50/90 px-2.5 py-1 rounded-md border border-blue-200/90 group-hover:border-blue-400 group-hover:bg-blue-100/70 transition-colors inline-block tracking-tight">
-                                            {entry.item.courseCode}
-                                          </span>
+                                        {/* 4. SUBJECT TITLE / DESCRIPTION */}
+                                        <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-heading font-bold text-[13px] sm:text-[14px] text-slate-800 leading-snug">
+                                          {entry.item.subject}
                                         </td>
 
-                                        {/* 5. SUBJECT DESCRIPTION */}
-                                        <td className="py-3.5 px-4">
-                                          <div className="font-heading font-extrabold text-[13.5px] sm:text-[14.5px] text-[#0c1f38] leading-snug">
-                                            {entry.item.subject}
-                                          </div>
+                                        {/* 5. SECTION */}
+                                        <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-sans font-black text-[12px] sm:text-[13px] text-slate-900 text-center whitespace-nowrap">
+                                          {entry.item.section}
                                         </td>
 
-                                        {/* 6. SECTION */}
-                                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                          <span className="font-sans font-black text-[12px] sm:text-[13px] text-blue-950 bg-white px-2.5 py-1 rounded-md border border-blue-200/90 shadow-2xs inline-block">
-                                            {entry.item.section.startsWith('SEC') ? entry.item.section : `SEC ${entry.item.section}`}
-                                          </span>
+                                        {/* 6. ROOM / VENUE */}
+                                        <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-sans font-bold text-[12px] sm:text-[13px] text-slate-800 whitespace-nowrap">
+                                          {entry.item.room}
                                         </td>
 
-                                        {/* 7. ROOM / VENUE */}
-                                        <td className="py-3.5 px-4 whitespace-nowrap">
-                                          <div className="flex items-center gap-1.5 font-bold text-[12.5px] sm:text-[13.5px] text-slate-800" title={entry.item.room}>
-                                            <svg className="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            </svg>
-                                            <span className="truncate max-w-[200px]">{entry.item.room}</span>
-                                          </div>
-                                        </td>
-
-                                        {/* 8. TYPE */}
-                                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
-                                          <span className={`inline-block text-[10px] sm:text-[10.5px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wide border shadow-2xs ${entry.typeInfo.badgeClass}`}>
+                                        {/* 7. TYPE */}
+                                        <td className="p-3 sm:p-3.5 text-center whitespace-nowrap">
+                                          <span className={`inline-block text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded font-bold uppercase tracking-wider border ${entry.typeInfo.badgeClass}`}>
                                             {entry.typeInfo.label}
                                           </span>
                                         </td>
                                       </tr>
                                     );
-                                  })}
-                                </tbody>
+                                  })
+                                )
                               )}
+                            </tbody>
 
-                              <tfoot>
-                                <tr className="bg-slate-50 border-t-2 border-blue-200/90 font-heading font-extrabold text-[12.5px] text-slate-700">
-                                  <td colSpan={2} className="py-3 px-4">
-                                    Showing <span className="text-[#0f2854] font-black">{filteredTabularItems.length}</span> scheduled class{filteredTabularItems.length === 1 ? '' : 'es'}
-                                  </td>
-                                  <td className="py-3 px-3 text-center">
-                                    <span className="font-black text-[#0f2854]">
-                                      {filteredTabularItems.reduce((acc, c) => acc + c.durationHours, 0).toFixed(1)} hrs
-                                    </span>
-                                  </td>
-                                  <td colSpan={5} className="py-3 px-4 text-right text-slate-500 font-medium text-[11.5px]">
-                                    💡 Click any row to view complete course & schedule details modal
-                                  </td>
-                                </tr>
-                              </tfoot>
-                            </table>
-                          </div>
+                            <tfoot>
+                              <tr className="bg-slate-50 border-t-2 border-slate-900 font-heading font-bold text-[12px] sm:text-[13px] text-slate-700">
+                                <td colSpan={2} className="p-3 sm:p-3.5 border-r-2 border-slate-900">
+                                  Total: <span className="font-black text-[#0f2854]">{tabularStats.totalClasses} Classes</span>
+                                </td>
+                                <td colSpan={2} className="p-3 sm:p-3.5 border-r-2 border-slate-900">
+                                  Weekly Teaching Hours: <span className="font-black text-[#0f2854]">{tabularStats.totalHours.toFixed(1)} Hours</span>
+                                </td>
+                                <td colSpan={3} className="p-3 sm:p-3.5 text-right text-slate-500 font-medium text-[11.5px]">
+                                  Click on any row to view complete schedule details
+                                </td>
+                              </tr>
+                            </tfoot>
+                          </table>
                         </div>
                       </div>
                     )}
