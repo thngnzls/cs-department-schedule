@@ -2365,20 +2365,20 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* VIEW MODE 2: MINIMAL ROUNDED BLOCKS VIEW */}
+                    {/* VIEW MODE 2: MINIMAL ROUNDED BLOCKS VIEW (Optimized for 1-Page Short Bond Paper Capture & High Legibility) */}
                     {scheduleFormat === 'blocks' && (
-                      <div className="w-full bg-[#eef5fc] rounded-[24px] p-3.5 sm:p-6 border border-blue-200/80 shadow-xs overflow-x-auto custom-timetable-scrollbar">
-                        <div className="min-w-[720px]">
+                      <div className="w-full bg-[#edf5fd] rounded-[24px] p-3 sm:p-5 md:p-6 border-2 border-blue-200 shadow-xs overflow-x-auto custom-timetable-scrollbar">
+                        <div className="min-w-[760px] max-w-[1400px] mx-auto">
                           {/* 1. Day Pill Headers: M, T, W, T, F, S */}
                           <div className="grid grid-cols-6 gap-2.5 sm:gap-3.5 mb-3.5">
                             {WEEKDAYS.map((day) => (
                               <div
                                 key={day}
-                                className={`bg-white rounded-full py-2 sm:py-2.5 flex items-center justify-center shadow-[0_2px_8px_rgba(15,40,84,0.04)] border border-blue-100/90 transition-opacity ${
+                                className={`bg-white rounded-[16px] sm:rounded-full py-2 sm:py-3 flex items-center justify-center shadow-[0_2px_8px_rgba(15,40,84,0.06)] border border-blue-200 transition-opacity ${
                                   selectedDayFilter !== 'ALL' && selectedDayFilter !== day ? 'opacity-35' : ''
                                 }`}
                               >
-                                <span className="font-heading font-black text-[20px] sm:text-[24px] text-slate-500/90 tracking-wide select-none">
+                                <span className="font-heading font-black text-[22px] sm:text-[26px] md:text-[28px] text-slate-700 tracking-wide select-none">
                                   {DAY_LETTERS[day]}
                                 </span>
                               </div>
@@ -2405,12 +2405,12 @@ export default function App() {
                                 >
                                   {blocks.map((block, bIdx) => {
                                     if (block.isGap) {
-                                      const gapHeightPx = Math.max(36, block.spanSlots * 44 + (block.spanSlots - 1) * 8);
+                                      const gapHeightPx = Math.max(26, block.spanSlots * 32);
                                       return (
                                         <div
                                           key={bIdx}
                                           style={{ minHeight: `${gapHeightPx}px`, height: `${gapHeightPx}px` }}
-                                          className="bg-[#d2d6db] rounded-[18px] sm:rounded-[20px] w-full shrink-0 shadow-2xs transition-all"
+                                          className="bg-[#cbd5e1] rounded-[16px] sm:rounded-[20px] w-full shrink-0 shadow-2xs transition-all opacity-85"
                                           aria-label="Free period"
                                         />
                                       );
@@ -2418,7 +2418,7 @@ export default function App() {
 
                                     const item = block.item!;
                                     const typeInfo = block.typeInfo!;
-                                    const classHeightPx = Math.max(76, block.spanSlots * 72 + (block.spanSlots - 1) * 10);
+                                    const classHeightPx = Math.max(92, block.spanSlots * 68 + (block.spanSlots - 1) * 8);
 
                                     return (
                                       <div
@@ -2449,26 +2449,28 @@ export default function App() {
                                           }
                                         }}
                                         style={{ minHeight: `${classHeightPx}px`, height: `${classHeightPx}px` }}
-                                        className="bg-[#cde8fd] hover:bg-[#bfe2fd] border border-[#b4daf9] rounded-[18px] sm:rounded-[20px] p-2 sm:p-2.5 flex flex-col items-center justify-center text-center shadow-xs cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all shrink-0 overflow-hidden select-none"
+                                        className="bg-gradient-to-b from-[#d8effe] to-[#c3e6fd] hover:from-[#c3e6fd] hover:to-[#b0ddfb] border-2 border-[#8ecef8] rounded-[18px] sm:rounded-[22px] p-2.5 sm:p-3 flex flex-col items-center justify-center text-center shadow-xs cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all shrink-0 overflow-hidden select-none"
                                         title={`${item.courseCode} - ${item.subject} (${item.start}-${item.end})`}
                                       >
-                                        {/* Line 1: Time */}
-                                        <span className="font-extrabold text-[10px] sm:text-[11px] text-slate-800 uppercase tracking-tight leading-none shrink-0">
+                                        {/* Line 1: Time Range in bold readable font */}
+                                        <span className="font-sans font-black text-[11px] sm:text-[12.5px] md:text-[13.5px] text-slate-800 uppercase tracking-tight leading-tight shrink-0">
                                           {formatBlockTime(item.start, item.end)}
                                         </span>
 
-                                        {/* Line 2: Course Code */}
-                                        <span className="font-heading font-black text-[14px] sm:text-[16px] text-slate-950 leading-tight mt-1 shrink-0">
+                                        {/* Line 2: Large prominent Course Code */}
+                                        <span className="font-heading font-black text-[16px] sm:text-[19px] md:text-[21px] text-slate-950 leading-tight mt-1 shrink-0 tracking-tight">
                                           {item.courseCode}
                                         </span>
 
-                                        {/* Line 3: Section */}
-                                        <span className="font-bold text-[10.5px] sm:text-[11.5px] text-slate-700 leading-tight mt-0.5 shrink-0">
-                                          {item.section.startsWith('SEC') ? item.section : `SEC ${item.section}`}
-                                        </span>
+                                        {/* Line 3: Section in high-contrast pill */}
+                                        <div className="mt-1 shrink-0">
+                                          <span className="font-sans font-black text-[11px] sm:text-[12px] md:text-[13px] text-blue-950 bg-white/85 px-2.5 py-0.5 rounded-md border border-blue-200/80 shadow-2xs inline-block">
+                                            {item.section.startsWith('SEC') ? item.section : `SEC ${item.section}`}
+                                          </span>
+                                        </div>
 
-                                        {/* Line 4: Type | Room */}
-                                        <span className="font-semibold text-[9.5px] sm:text-[10.5px] text-slate-600 leading-tight mt-0.5 truncate max-w-full px-1 shrink-0">
+                                        {/* Line 4: Type | Room Venue in bold legible text */}
+                                        <span className="font-sans font-bold text-[10.5px] sm:text-[12px] md:text-[13px] text-slate-800 leading-tight mt-1 truncate max-w-full px-1 shrink-0">
                                           {formatBlockVenue(typeInfo, item.room)}
                                         </span>
                                       </div>
