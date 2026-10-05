@@ -5,7 +5,7 @@ export const professors: Professor[] = [
   {
     name: 'Dr. Karren V. De Lara',
     title: 'CS Program Chair',
-    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80',
+    photo: '/professors/dr-karren-delara.jpg',
     schedule: [
       // Monday
       {
@@ -143,7 +143,7 @@ export const professors: Professor[] = [
   {
     name: 'Prof. Elsa I. Barcelos',
     title: 'CS Faculty',
-    photo: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=300&q=80',
+    photo: '/professors/prof-elsa-barcelos.png',
     schedule: [
       // Monday
       {
@@ -353,7 +353,7 @@ export const professors: Professor[] = [
   {
     name: 'Prof. Janice A. Capule',
     title: 'CS Faculty',
-    photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80',
+    photo: '/professors/prof-janice-capule.png',
     schedule: [
       // Monday
       {
@@ -591,7 +591,7 @@ export const professors: Professor[] = [
   {
     name: 'Prof. Jess N. Garcia',
     title: 'CS Faculty',
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
+    photo: '/professors/prof-jess-garcia.png',
     schedule: [
       // Monday
       {
@@ -856,7 +856,7 @@ export const professors: Professor[] = [
   {
     name: 'Prof. Monaliza C. Gregorio',
     title: 'CS Faculty',
-    photo: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=300&q=80',
+    photo: '/professors/prof-monaliza-gregorio.png',
     schedule: [
       // Monday
       {
@@ -1371,6 +1371,9 @@ function formatBlockVenue(typeInfo: { label: string; isLab: boolean; isOnline: b
   }
   if (cleanRoom.toLowerCase() === 'lecture') return '(Lecture)';
   if (cleanRoom.toLowerCase() === 'laboratory') return '(Laboratory)';
+  if (cleanRoom.toLowerCase().includes('consultation') || cleanRoom.toLowerCase().includes('prep')) {
+    return `(${cleanRoom})`;
+  }
 
   const roomPrefixMatch = cleanRoom.match(/^(?:Laboratory|Lecture)\s*-\s*(.+)$/i);
   if (roomPrefixMatch) {
@@ -1461,9 +1464,71 @@ function getDayTimelineBlocks(
   return blocks;
 }
 
+interface ConsultationSlot {
+  time: string;
+  day: string;
+}
+
+interface FacultyConsultation {
+  id: number;
+  name: string;
+  department: string;
+  slots: ConsultationSlot[];
+  venue: string;
+}
+
+const CS_CONSULTATION_HOURS: FacultyConsultation[] = [
+  {
+    id: 1,
+    name: 'BARCELOS, ELSA I.',
+    department: 'COMPUTER SCIENCE DEPARTMENT',
+    slots: [
+      { time: '5:30 PM - 6:30 PM', day: 'Monday' },
+      { time: '4:30 PM - 5:30 PM', day: 'Wednesday' },
+      { time: '4:30 PM - 6:30 PM', day: 'Thursday' },
+    ],
+    venue: 'Q-5212 FACULTY CONSULTATION ROOM',
+  },
+  {
+    id: 2,
+    name: 'CAPULE, JANICE A.',
+    department: 'COMPUTER SCIENCE DEPARTMENT',
+    slots: [
+      { time: '7:30 AM - 8:30 AM', day: 'Tuesday' },
+      { time: '1:30 PM - 3:30 PM', day: 'Tuesday' },
+      { time: '3:30 PM - 4:30 PM', day: 'Wednesday' },
+      { time: '8:30 AM - 9:30 AM', day: 'Friday' },
+    ],
+    venue: 'Q-5212 FACULTY CONSULTATION ROOM',
+  },
+  {
+    id: 3,
+    name: 'GARCIA, JESS N.',
+    department: 'COMPUTER SCIENCE DEPARTMENT',
+    slots: [
+      { time: '3:30 PM - 4:30 PM', day: 'Monday' },
+      { time: '7:30 AM - 10:30 AM', day: 'Thursday' },
+    ],
+    venue: 'Q-5212 FACULTY CONSULTATION ROOM',
+  },
+  {
+    id: 4,
+    name: 'GREGORIO, MONALIZA C.',
+    department: 'COMPUTER SCIENCE DEPARTMENT',
+    slots: [
+      { time: '10:30 AM - 12:30 PM', day: 'Thursday' },
+      { time: '10:30 AM - 12:30 PM', day: 'Friday' },
+    ],
+    venue: 'Q-5212 FACULTY CONSULTATION ROOM',
+  },
+];
+
 export default function App() {
+  const [activeTab, setActiveTab] = useState<'schedule' | 'consultation'>('schedule');
+  const [scheduleFormat, setScheduleFormat] = useState<'grid' | 'blocks' | 'agenda'>('grid');
+  const [consultationSearch, setConsultationSearch] = useState<string>('');
+  const [consultationDayFilter, setConsultationDayFilter] = useState<string>('ALL');
   const [selectedProfIndex, setSelectedProfIndex] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<'grid' | 'blocks' | 'agenda' | 'printable'>('grid');
   const [selectedDayFilter, setSelectedDayFilter] = useState<'ALL' | Weekday>('ALL');
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({});
   const [selectedClassModal, setSelectedClassModal] = useState<{
@@ -1631,6 +1696,24 @@ export default function App() {
     };
   }, [currentProfessor]);
 
+  const filteredConsultations = useMemo(() => {
+    return CS_CONSULTATION_HOURS.filter((faculty) => {
+      const q = consultationSearch.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        faculty.name.toLowerCase().includes(q) ||
+        faculty.slots.some(
+          (s) => s.day.toLowerCase().includes(q) || s.time.toLowerCase().includes(q)
+        );
+
+      const matchDay =
+        consultationDayFilter === 'ALL' ||
+        faculty.slots.some((s) => s.day.toLowerCase() === consultationDayFilter.toLowerCase());
+
+      return matchSearch && matchDay;
+    });
+  }, [consultationSearch, consultationDayFilter]);
+
   const handleImageError = (index: number) => {
     setFailedImages((prev) => ({ ...prev, [index]: true }));
   };
@@ -1650,49 +1733,77 @@ export default function App() {
         className="pointer-events-none absolute top-[520px] -left-32 w-80 h-80 md:w-[480px] md:h-[480px] rounded-full bg-cyan-400/10 blur-3xl z-0"
       />
 
-      {/* 2. Header */}
-      <header className="sticky top-0 z-40 w-full min-h-[76px] md:min-h-[88px] bg-white/85 backdrop-blur-md border-b border-blue-100/80 transition-all shadow-xs">
-        <div className="max-w-[1600px] mx-auto px-[14px] md:px-6 h-full min-h-[76px] md:min-h-[88px] flex items-center justify-between">
+      {/* 2. Responsive Header - Clean, Organised, No Screenshot/Print Button */}
+      <header className="sticky top-0 z-40 w-full min-h-[72px] md:min-h-[84px] bg-white/90 backdrop-blur-md border-b border-blue-100/90 transition-all shadow-xs">
+        <div className="max-w-[1600px] mx-auto px-3.5 sm:px-5 md:px-6 py-2.5 sm:py-0 min-h-[72px] md:min-h-[84px] flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
           {/* Left: Department Mark & Title */}
-          <div className="flex items-center gap-3.5 md:gap-4">
-            <div
-              className="w-[46px] h-[46px] rounded-[12px] bg-gradient-to-br from-[#0f2854] to-[#1e58b8] shadow-md shadow-blue-900/15 flex items-center justify-center -rotate-3 transition-transform hover:rotate-0 select-none shrink-0"
-              aria-hidden="true"
-            >
-              <span className="font-heading font-extrabold text-white text-[19px] tracking-wide rotate-3">
-                CS
-              </span>
+          <div className="flex items-center gap-3 sm:gap-3.5 w-full sm:w-auto justify-between sm:justify-start">
+            <div className="flex items-center gap-3">
+              <div
+                className="w-[42px] h-[42px] sm:w-[48px] sm:h-[48px] rounded-[13px] bg-gradient-to-br from-[#0f2854] to-[#1e58b8] shadow-md shadow-blue-900/15 flex items-center justify-center -rotate-3 transition-transform hover:rotate-0 select-none shrink-0"
+                aria-hidden="true"
+              >
+                <span className="font-heading font-black text-white text-[18px] sm:text-[20px] tracking-wide rotate-3">
+                  CS
+                </span>
+              </div>
+
+              <div className="flex flex-col">
+                <span className="text-[9.5px] sm:text-[11px] font-extrabold uppercase tracking-wider text-blue-900/70 leading-tight">
+                  COLLEGE OF COMPUTER STUDIES
+                </span>
+                <h1 className="text-[15px] sm:text-[18px] font-heading font-black tracking-tight leading-snug">
+                  <span className="text-[#0284c7]">Computer Science</span>{' '}
+                  <span className="text-[#0c1f38]">Department</span>
+                </h1>
+              </div>
             </div>
 
-            <div className="flex flex-col">
-              <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-blue-900/70 leading-tight">
-                COLLEGE OF COMPUTER STUDIES
-              </span>
-              <h1 className="text-[16px] md:text-[19px] font-heading font-extrabold tracking-tight leading-snug">
-                <span className="text-[#0284c7]">Computer Science</span>{' '}
-                <span className="text-[#0c1f38]">Department</span>
-              </h1>
+            {/* Mobile-only Academic Term Badge */}
+            <div className="sm:hidden px-2.5 py-1 rounded-full bg-blue-50 border border-blue-200/70 text-[10px] font-bold text-[#0c1f38]">
+              1st Sem · AY 26–27
             </div>
           </div>
 
-          {/* Right: Actions & Semester Pill */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            <button
-              type="button"
-              onClick={() => setViewMode(viewMode === 'printable' ? 'grid' : 'printable')}
-              className={`px-3 sm:px-4 py-2 rounded-xl text-[12px] sm:text-[13px] font-heading font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs ${
-                viewMode === 'printable'
-                  ? 'bg-gradient-to-r from-[#0f2854] to-[#0284c7] text-white ring-2 ring-blue-300'
-                  : 'bg-white hover:bg-blue-50 text-[#0f2854] border border-blue-200/80 hover:border-blue-300'
-              }`}
-            >
-              <svg className="w-4 h-4 text-[#0284c7]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-              </svg>
-              <span>{viewMode === 'printable' ? 'Interactive View' : 'Screenshot / Print Mode'}</span>
-            </button>
+          {/* Right: The ONLY two tabs - Schedule and Consultation */}
+          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto justify-center sm:justify-end">
+            <div className="inline-flex p-1 bg-blue-100/80 rounded-xl border border-blue-200/80 shadow-2xs w-full sm:w-auto justify-center">
+              <button
+                type="button"
+                onClick={() => setActiveTab('schedule')}
+                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg text-[12.5px] sm:text-[13.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  activeTab === 'schedule'
+                    ? 'bg-[#0f2854] text-white shadow-xs'
+                    : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/60'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span>Schedule</span>
+              </button>
 
-            <div className="hidden min-[840px]:flex items-center gap-2.5 px-4 py-2 rounded-full bg-blue-50/90 border border-blue-200/70 text-blue-950 shadow-xs">
+              <button
+                type="button"
+                onClick={() => setActiveTab('consultation')}
+                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg text-[12.5px] sm:text-[13.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  activeTab === 'consultation'
+                    ? 'bg-[#0f2854] text-white shadow-xs'
+                    : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/60'
+                }`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Consultation</span>
+              </button>
+            </div>
+
+            {/* Desktop Academic Term Badge */}
+            <div className="hidden min-[960px]:flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-blue-50/90 border border-blue-200/70 text-blue-950 shadow-xs">
               <svg
                 className="w-4 h-4 text-[#0284c7] shrink-0"
                 fill="none"
@@ -1719,559 +1830,597 @@ export default function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 w-full max-w-[1600px] mx-auto px-[10px] sm:px-4 md:px-6 relative z-10 pb-12">
-        {/* 3. Hero Section */}
-        <section className="pt-8 md:pt-14 pb-6 md:pb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-8">
-          <div className="max-w-[780px]">
-            <div className="inline-flex items-center gap-2 mb-2.5">
-              <span className="w-5 h-[2px] bg-[#0284c7] rounded-full inline-block" />
-              <span className="text-[11px] md:text-[12px] font-bold uppercase tracking-widest text-[#0284c7]">
-                FACULTY DIRECTORY & TIMETABLE
-              </span>
-            </div>
-
-            <h2 className="font-heading font-extrabold text-[32px] sm:text-[44px] md:text-[56px] leading-[1.08] tracking-tight text-[#0c1f38]">
-              Find your professor.
-              <br />
-              <span className="text-[#0284c7]">Plan your week.</span>
-            </h2>
-
-            <p className="mt-3 text-[14px] sm:text-[16px] text-[#475569] leading-relaxed max-w-[620px]">
-              Browse the official class schedules of our Computer Science faculty. Select a professor below to view their teaching hours and rooms.
-            </p>
-          </div>
-
-          {/* Professor Statistic */}
-          <div className="flex items-center gap-4 sm:gap-6 self-start md:self-auto pl-0 md:pl-8 md:border-l border-blue-200/80 shrink-0">
-            <div className="flex flex-col">
-              <span className="font-heading font-extrabold text-[42px] sm:text-[50px] leading-none text-[#0f2854] tracking-tight">
-                {String(totalProfessors).padStart(2, '0')}
-              </span>
-              <span className="text-[12px] sm:text-[13px] font-bold uppercase tracking-wider text-blue-900 mt-1 leading-tight">
-                CS professors
-              </span>
-              <span className="text-[11px] sm:text-[12px] text-blue-600/80 font-medium">
-                on this directory
-              </span>
-            </div>
-          </div>
-        </section>
-
-        {/* 4. Professor Folder Navigation */}
-        <section aria-label="Professor Folder Selection" className="mt-1">
-          <div className="mb-2 px-1 flex items-center justify-between">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-blue-900/70">
-              CHOOSE A PROFESSOR
-            </span>
-            <span className="text-[11px] font-medium text-blue-700/60 hidden sm:inline">
-              ← Scroll tabs horizontally →
-            </span>
-          </div>
-
-          {/* Horizontally scrollable Folder Tabs */}
-          <div
-            role="tablist"
-            aria-label="Computer Science Professors"
-            className="flex items-end overflow-x-auto no-scrollbar pt-4 pb-0 -mb-[1px] gap-2 md:gap-2.5 z-20 relative px-1"
-          >
-            {professors.map((prof, idx) => {
-              const isActive = idx === selectedProfIndex;
-              const twoDigitNum = String(idx + 1).padStart(2, '0');
-              const tabId = `prof-tab-${idx}`;
-              const panelId = `prof-panel-${idx}`;
-              const bgColor = TAB_BG_COLORS[idx % TAB_BG_COLORS.length];
-
-              return (
-                <button
-                  key={idx}
-                  id={tabId}
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-controls={panelId}
-                  tabIndex={isActive ? 0 : -1}
-                  onClick={() => setSelectedProfIndex(idx)}
-                  style={{
-                    backgroundColor: isActive ? '#ffffff' : bgColor,
-                  }}
-                  className={`folder-tab relative flex items-center gap-2.5 px-3.5 sm:px-4 md:px-5 rounded-t-[14px] rounded-b-none transition-all duration-200 cursor-pointer select-none text-left shrink-0 min-w-[175px] sm:min-w-[195px] md:min-w-[215px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-inset ${isActive
-                      ? 'active-tab h-[68px] text-[#0c1f38] shadow-[0_-6px_20px_rgba(15,40,84,0.09)] z-30 font-bold border-t border-l border-blue-100/90'
-                      : 'h-[56px] hover:h-[62px] focus-visible:h-[62px] text-white/95 opacity-90 hover:opacity-100 shadow-xs z-10 font-medium'
-                    }`}
-                >
-                  <span
-                    className={`font-heading text-[13px] md:text-[14px] font-extrabold px-1.5 py-0.5 rounded-md ${isActive
-                        ? 'bg-blue-100/80 text-[#0284c7]'
-                        : 'bg-white/20 text-white'
-                      }`}
-                  >
-                    {twoDigitNum}
+      <main className="flex-1 w-full max-w-[1600px] mx-auto px-3 sm:px-5 md:px-6 relative z-10 pb-16">
+        {activeTab === 'schedule' && (
+          <>
+            {/* 3. Hero Landing Section with generous comfortable spacing */}
+            <section className="pt-10 sm:pt-14 md:pt-18 pb-8 sm:pb-10 md:pb-12 flex flex-col md:flex-row md:items-center justify-between gap-6 md:gap-10">
+              <div className="max-w-[840px]">
+                <div className="inline-flex items-center gap-2 mb-3 px-3 py-1 rounded-full bg-blue-100/70 border border-blue-200/80 shadow-2xs">
+                  <span className="w-2 h-2 bg-[#0284c7] rounded-full inline-block animate-pulse" />
+                  <span className="text-[11px] md:text-[12px] font-extrabold uppercase tracking-widest text-[#0284c7]">
+                    FACULTY DIRECTORY & TIMETABLES
                   </span>
-                  <div className="flex flex-col truncate">
-                    <span className="text-[14px] md:text-[15.5px] truncate tracking-tight font-heading font-extrabold">
-                      {prof.name}
-                    </span>
-                    <span className={`text-[11px] md:text-[12px] uppercase tracking-wider truncate font-bold ${isActive ? 'text-blue-700' : 'text-cyan-200'}`}>
-                      {prof.title}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* 5. Main Schedule Panel */}
-        <section
-          id={`prof-panel-${selectedProfIndex}`}
-          role="tabpanel"
-          aria-labelledby={`prof-tab-${selectedProfIndex}`}
-          className="relative z-20 bg-white/95 backdrop-blur-sm border border-blue-100/90 rounded-[22px] overflow-hidden shadow-[0_20px_50px_rgba(15,40,84,0.08)]"
-        >
-          {totalProfessors === 0 || !currentProfessor ? (
-            <div className="p-16 text-center">
-              <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-200 text-blue-600 mx-auto flex items-center justify-center mb-4">
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-heading font-bold text-[#0c1f38]">
-                No professor schedules available.
-              </h3>
-              <p className="text-sm text-slate-500 mt-1">
-                Please add faculty members to the professors array to view their timetables.
-              </p>
-            </div>
-          ) : (
-            <div key={selectedProfIndex} className="animate-content-switch">
-              {/* 6. Professor Summary Banner */}
-              <div className="relative min-h-[105px] md:min-h-[125px] py-5 md:py-6 px-4 sm:px-6 md:px-[34px] flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-blue-100/80 bg-gradient-to-r from-white via-white to-blue-50/40 overflow-hidden">
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute -top-12 -right-12 w-64 h-64 rounded-full bg-cyan-200/30 blur-2xl z-0"
-                />
-
-                {/* Left: Avatar and Identity */}
-                <div className="flex items-center gap-3.5 md:gap-5 relative z-10">
-                  <div className="w-[62px] h-[62px] md:w-[76px] md:h-[76px] rounded-[18px] md:rounded-[22px] border-[3px] md:border-[4px] border-cyan-100/90 shadow-md shadow-blue-950/10 bg-gradient-to-br from-[#0f2854] to-[#0284c7] overflow-hidden shrink-0 flex items-center justify-center relative">
-                    <span className="font-heading font-extrabold text-white text-[20px] md:text-[24px] select-none">
-                      {currentInitials}
-                    </span>
-
-                    {currentProfessor.photo && !currentPhotoFailed && (
-                      <img
-                        src={currentProfessor.photo}
-                        alt={`Portrait of ${currentProfessor.name}`}
-                        onError={() => handleImageError(selectedProfIndex)}
-                        className="absolute inset-0 w-full h-full object-cover object-center"
-                      />
-                    )}
-                  </div>
-
-                  <div className="flex flex-col">
-                    <span className="text-[11px] md:text-[12px] font-bold uppercase tracking-wider text-[#0284c7] leading-none mb-1">
-                      VIEWING SCHEDULE FOR
-                    </span>
-                    <h3 className="font-heading font-black text-[22px] sm:text-[25px] md:text-[28px] text-[#0c1f38] leading-tight">
-                      {currentProfessor.name}
-                    </h3>
-                    <p className="text-[14px] sm:text-[15px] md:text-[16px] text-blue-900 font-bold mt-0.5 line-clamp-1">
-                      {currentProfessor.title}
-                    </p>
-                  </div>
                 </div>
 
-                {/* Right: Class Count & View Mode Toggle */}
-                <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 relative z-10 pt-2 sm:pt-0 border-t sm:border-t-0 border-blue-100">
-                  {/* View Mode Toggle Switch */}
-                  <div className="inline-flex p-1 bg-blue-100/70 rounded-xl border border-blue-200/60 shadow-2xs">
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('grid')}
-                      className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-heading font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        viewMode === 'grid'
-                          ? 'bg-white text-[#0f2854] shadow-xs'
-                          : 'text-blue-900/70 hover:text-[#0f2854]'
-                      }`}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                      </svg>
-                      <span>Grid View</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('blocks')}
-                      className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-heading font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        viewMode === 'blocks'
-                          ? 'bg-white text-[#0f2854] shadow-xs'
-                          : 'text-blue-900/70 hover:text-[#0f2854]'
-                      }`}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <rect x="3" y="3" width="7" height="8" rx="2" strokeWidth="2" />
-                        <rect x="14" y="3" width="7" height="12" rx="2" strokeWidth="2" />
-                        <rect x="3" y="14" width="7" height="7" rx="2" strokeWidth="2" />
-                        <rect x="14" y="18" width="7" height="3" rx="1.5" strokeWidth="2" />
-                      </svg>
-                      <span>Block Format</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('agenda')}
-                      className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-heading font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        viewMode === 'agenda'
-                          ? 'bg-white text-[#0f2854] shadow-xs'
-                          : 'text-blue-900/70 hover:text-[#0f2854]'
-                      }`}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                      </svg>
-                      <span>Day Agenda</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setViewMode('printable')}
-                      className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-[11px] sm:text-[12px] font-heading font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                        viewMode === 'printable'
-                          ? 'bg-[#0f2854] text-white shadow-xs'
-                          : 'text-blue-900/70 hover:text-[#0f2854]'
-                      }`}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                      </svg>
-                      <span>Printable Sheet</span>
-                    </button>
-                  </div>
+                <h2 className="font-heading font-black text-[32px] sm:text-[46px] md:text-[58px] leading-[1.08] tracking-tight text-[#0c1f38]">
+                  Find your professor.
+                  <br />
+                  <span className="bg-gradient-to-r from-[#0284c7] via-[#0369a1] to-[#0f2854] bg-clip-text text-transparent">
+                    Plan your week.
+                  </span>
+                </h2>
 
-                  {/* Class Meetings Counter */}
-                  <div className="hidden sm:flex items-center pl-4 border-l border-blue-200/80 shrink-0">
-                    <div className="flex flex-col text-right">
-                      <span className="font-heading font-extrabold text-[28px] md:text-[32px] leading-none text-[#0f2854]">
-                        {String(currentProfessor.schedule?.length || 0).padStart(2, '0')}
+                <p className="mt-4 text-[14.5px] sm:text-[16.5px] text-[#475569] leading-relaxed max-w-[640px]">
+                  Browse official class schedules, laboratory rooms, and teaching hours for Computer Science faculty members. Select a professor below to view their weekly timetable and schedule details.
+                </p>
+              </div>
+
+              {/* Professor Statistic Card */}
+              <div className="flex items-center gap-4 sm:gap-6 self-start md:self-auto pl-0 md:pl-8 md:border-l-2 border-blue-200/80 shrink-0 bg-white/70 md:bg-transparent p-4 sm:p-5 md:p-0 rounded-2xl border md:border-0 border-blue-100 shadow-xs md:shadow-none w-full sm:w-auto">
+                <div className="flex flex-col">
+                  <span className="font-heading font-black text-[42px] sm:text-[52px] leading-none text-[#0f2854] tracking-tight">
+                    {String(totalProfessors).padStart(2, '0')}
+                  </span>
+                  <span className="text-[12px] sm:text-[13px] font-black uppercase tracking-wider text-blue-900 mt-1 leading-tight">
+                    CS Faculty Members
+                  </span>
+                  <span className="text-[11px] sm:text-[12px] text-blue-600 font-semibold">
+                    Teaching & Consultation
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            {/* 4. Professor Folder Navigation */}
+            <section aria-label="Professor Folder Selection" className="mt-2">
+              <div className="mb-2.5 px-1 flex items-center justify-between">
+                <span className="text-[11px] font-extrabold uppercase tracking-widest text-blue-900/80">
+                  CHOOSE A PROFESSOR
+                </span>
+                <span className="text-[11px] font-semibold text-blue-700/70 hidden sm:inline">
+                  ← Scroll tabs horizontally →
+                </span>
+              </div>
+
+              {/* Mobile Quick Dropdown Selector for instant switching on phones */}
+              <div className="md:hidden mb-3">
+                <div className="relative">
+                  <select
+                    id="mobile-prof-select"
+                    value={selectedProfIndex}
+                    onChange={(e) => setSelectedProfIndex(Number(e.target.value))}
+                    className="w-full bg-white border-2 border-blue-200 rounded-xl px-4 py-3 text-[14px] font-heading font-extrabold text-[#0c1f38] shadow-xs focus:ring-2 focus:ring-[#0284c7] focus:outline-none appearance-none cursor-pointer"
+                    aria-label="Select Professor"
+                  >
+                    {professors.map((p, pIdx) => (
+                      <option key={pIdx} value={pIdx}>
+                        {String(pIdx + 1).padStart(2, '0')}. {p.name} — {p.title}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-blue-900">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* Horizontally scrollable Folder Tabs */}
+              <div
+                role="tablist"
+                aria-label="Computer Science Professors"
+                className="flex items-end overflow-x-auto no-scrollbar pt-3 pb-0 -mb-[1px] gap-2 md:gap-2.5 z-20 relative px-1 scroll-smooth"
+              >
+                {professors.map((prof, idx) => {
+                  const isActive = idx === selectedProfIndex;
+                  const twoDigitNum = String(idx + 1).padStart(2, '0');
+                  const tabId = `prof-tab-${idx}`;
+                  const panelId = `prof-panel-${idx}`;
+                  const bgColor = TAB_BG_COLORS[idx % TAB_BG_COLORS.length];
+
+                  return (
+                    <button
+                      key={idx}
+                      id={tabId}
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls={panelId}
+                      tabIndex={isActive ? 0 : -1}
+                      onClick={() => setSelectedProfIndex(idx)}
+                      style={{
+                        backgroundColor: isActive ? '#ffffff' : bgColor,
+                      }}
+                      className={`folder-tab relative flex items-center gap-2.5 px-3.5 sm:px-4 md:px-5 rounded-t-[14px] rounded-b-none transition-all duration-200 cursor-pointer select-none text-left shrink-0 min-w-[175px] sm:min-w-[195px] md:min-w-[215px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-inset ${
+                        isActive
+                          ? 'active-tab h-[68px] text-[#0c1f38] shadow-[0_-6px_20px_rgba(15,40,84,0.09)] z-30 font-bold border-t border-l border-blue-100/90'
+                          : 'h-[56px] hover:h-[62px] focus-visible:h-[62px] text-white/95 opacity-90 hover:opacity-100 shadow-xs z-10 font-medium'
+                      }`}
+                    >
+                      <span
+                        className={`font-heading text-[13px] md:text-[14px] font-extrabold px-1.5 py-0.5 rounded-md ${
+                          isActive
+                            ? 'bg-blue-100/80 text-[#0284c7]'
+                            : 'bg-white/20 text-white'
+                        }`}
+                      >
+                        {twoDigitNum}
                       </span>
-                      <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-blue-900/70 mt-0.5">
-                        MEETINGS
-                      </span>
+                      <div className="flex flex-col truncate">
+                        <span className="text-[14px] md:text-[15.5px] truncate tracking-tight font-heading font-extrabold">
+                          {prof.name}
+                        </span>
+                        <span className={`text-[11px] md:text-[12px] uppercase tracking-wider truncate font-bold ${isActive ? 'text-blue-700' : 'text-cyan-200'}`}>
+                          {prof.title}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* 5. Main Schedule Panel */}
+            <section
+              id={`prof-panel-${selectedProfIndex}`}
+              role="tabpanel"
+              aria-labelledby={`prof-tab-${selectedProfIndex}`}
+              className="relative z-20 bg-white/95 backdrop-blur-sm border border-blue-100/90 rounded-[22px] overflow-hidden shadow-[0_20px_50px_rgba(15,40,84,0.08)]"
+            >
+              {totalProfessors === 0 || !currentProfessor ? (
+                <div className="p-16 text-center">
+                  <div className="w-16 h-16 rounded-full bg-blue-50 border border-blue-200 text-blue-600 mx-auto flex items-center justify-center mb-4">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-heading font-bold text-[#0c1f38]">
+                    No professor schedules available.
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    Please add faculty members to the professors array to view their timetables.
+                  </p>
+                </div>
+              ) : (
+                <div key={selectedProfIndex} className="animate-content-switch">
+                  {/* 6. Professor Summary Banner */}
+                  <div className="relative min-h-[110px] md:min-h-[130px] py-5 md:py-6 px-4 sm:px-6 md:px-[34px] flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6 border-b border-blue-100/80 bg-gradient-to-r from-white via-white to-blue-50/40 overflow-hidden">
+                    <div
+                      aria-hidden="true"
+                      className="pointer-events-none absolute -top-12 -right-12 w-64 h-64 rounded-full bg-cyan-200/30 blur-2xl z-0"
+                    />
+
+                    {/* Left: Avatar and Identity */}
+                    <div className="flex items-center gap-3.5 sm:gap-5 relative z-10">
+                      <div className="w-[66px] h-[66px] sm:w-[76px] sm:h-[76px] md:w-[84px] md:h-[84px] rounded-[20px] md:rounded-[24px] border-[3px] md:border-[4px] border-cyan-100/90 shadow-md shadow-blue-950/10 bg-gradient-to-br from-[#0f2854] to-[#0284c7] overflow-hidden shrink-0 flex items-center justify-center relative">
+                        <span className="font-heading font-black text-white text-[20px] md:text-[24px] select-none">
+                          {currentInitials}
+                        </span>
+
+                        {currentProfessor.photo && !currentPhotoFailed && (
+                          <img
+                            src={currentProfessor.photo}
+                            alt={`Portrait of ${currentProfessor.name}`}
+                            onError={() => handleImageError(selectedProfIndex)}
+                            className="absolute inset-0 w-full h-full object-cover object-top"
+                          />
+                        )}
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-[10.5px] sm:text-[11.5px] font-extrabold uppercase tracking-wider text-[#0284c7] leading-none mb-1">
+                          VIEWING SCHEDULE FOR
+                        </span>
+                        <h3 className="font-heading font-black text-[22px] sm:text-[26px] md:text-[30px] text-[#0c1f38] leading-tight">
+                          {currentProfessor.name}
+                        </h3>
+                        <p className="text-[13.5px] sm:text-[15px] md:text-[16px] text-blue-900 font-bold mt-0.5 line-clamp-1">
+                          {currentProfessor.title}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right: Sub-View Options (Time Table, Block Format, Day Agenda) & Meetings count */}
+                    <div className="flex items-center justify-between lg:justify-end gap-3 sm:gap-4 relative z-10 pt-3 lg:pt-0 border-t lg:border-t-0 border-blue-100">
+                      {/* Schedule Format Sub-Tabs */}
+                      <div className="flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
+                        <span className="hidden xl:inline text-[11px] font-extrabold uppercase tracking-wider text-blue-900/70">
+                          View Mode:
+                        </span>
+                        <div className="inline-flex p-1 bg-blue-100/70 rounded-xl border border-blue-200/60 shadow-2xs w-full sm:w-auto">
+                          <button
+                            type="button"
+                            onClick={() => setScheduleFormat('grid')}
+                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                              scheduleFormat === 'grid'
+                                ? 'bg-[#0f2854] text-white shadow-xs'
+                                : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
+                            }`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                            </svg>
+                            <span>Time Table</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setScheduleFormat('blocks')}
+                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                              scheduleFormat === 'blocks'
+                                ? 'bg-[#0f2854] text-white shadow-xs'
+                                : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
+                            }`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <rect x="3" y="3" width="7" height="8" rx="2" strokeWidth="2" />
+                              <rect x="14" y="3" width="7" height="12" rx="2" strokeWidth="2" />
+                              <rect x="3" y="14" width="7" height="7" rx="2" strokeWidth="2" />
+                              <rect x="14" y="18" width="7" height="3" rx="1.5" strokeWidth="2" />
+                            </svg>
+                            <span>Block Format</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setScheduleFormat('agenda')}
+                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                              scheduleFormat === 'agenda'
+                                ? 'bg-[#0f2854] text-white shadow-xs'
+                                : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
+                            }`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                            </svg>
+                            <span>Day Agenda</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Class Meetings Counter */}
+                      <div className="hidden sm:flex items-center pl-4 border-l border-blue-200/80 shrink-0">
+                        <div className="flex flex-col text-right">
+                          <span className="font-heading font-black text-[28px] md:text-[32px] leading-none text-[#0f2854]">
+                            {String(currentProfessor.schedule?.length || 0).padStart(2, '0')}
+                          </span>
+                          <span className="text-[9px] md:text-[10px] font-bold uppercase tracking-wider text-blue-900/70 mt-0.5">
+                            MEETINGS
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              {/* 7. Weekly Timetable Section */}
-              <div className="px-3.5 sm:px-6 md:px-[34px] pt-5 pb-8">
-                {/* Header Row with Day Filters */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-4">
-                  <div>
-                    <span className="text-[10px] md:text-[11px] font-bold uppercase tracking-widest text-[#0284c7]">
-                      {viewMode === 'grid' ? 'WEEKLY TIMETABLE' : 'DAILY AGENDA TIMELINE'}
-                    </span>
-                    <h4 className="font-heading font-bold text-[17px] sm:text-[19px] text-[#0c1f38] leading-tight">
-                      {viewMode === 'grid' ? 'Monday to Saturday (6:30 AM – 8:30 PM)' : 'Day-by-Day Schedule'}
-                    </h4>
-                  </div>
+                  {/* 7. Weekly Timetable Section */}
+                  <div className="px-3 sm:px-6 md:px-[34px] pt-5 pb-8">
+                    {/* Header Row with Day Filters */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                      <div>
+                        <span className="text-[10px] md:text-[11px] font-extrabold uppercase tracking-widest text-[#0284c7]">
+                          {scheduleFormat === 'grid' ? 'WEEKLY TIME TABLE' : scheduleFormat === 'blocks' ? 'BLOCK SCHEDULE' : 'DAILY AGENDA TIMELINE'}
+                        </span>
+                        <h4 className="font-heading font-black text-[17px] sm:text-[20px] text-[#0c1f38] leading-tight">
+                          {scheduleFormat === 'grid' ? 'Monday to Saturday (6:30 AM – 8:30 PM)' : scheduleFormat === 'blocks' ? 'Proportional Day Blocks' : 'Day-by-Day Schedule'}
+                        </h4>
+                      </div>
 
-                  {/* Quick Day Filter Buttons */}
-                  <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedDayFilter('ALL')}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-heading font-bold transition-colors cursor-pointer shrink-0 ${
-                        selectedDayFilter === 'ALL'
-                          ? 'bg-[#0f2854] text-white shadow-2xs'
-                          : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
-                      }`}
-                    >
-                      ALL DAYS
-                    </button>
-                    {WEEKDAYS.map((day) => {
-                      const countForDay = validatedSchedule.filter((item) => item.day === day).length;
-                      const isFilterActive = selectedDayFilter === day;
-
-                      return (
+                      {/* Quick Day Filter Buttons */}
+                      <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
                         <button
-                          key={day}
                           type="button"
-                          onClick={() => setSelectedDayFilter(day)}
-                          className={`px-2 py-1 rounded-md text-[11px] font-heading font-bold transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
-                            isFilterActive
-                              ? 'bg-[#0284c7] text-white shadow-2xs'
+                          onClick={() => setSelectedDayFilter('ALL')}
+                          className={`px-2.5 py-1.5 rounded-md text-[11px] font-heading font-extrabold transition-colors cursor-pointer shrink-0 ${
+                            selectedDayFilter === 'ALL'
+                              ? 'bg-[#0f2854] text-white shadow-2xs'
                               : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
                           }`}
                         >
-                          <span>{day}</span>
-                          {countForDay > 0 && (
-                            <span
-                              className={`text-[9px] px-1 rounded-full ${
-                                isFilterActive ? 'bg-white/25 text-white' : 'bg-blue-200/80 text-blue-950'
-                              }`}
-                            >
-                              {countForDay}
-                            </span>
-                          )}
+                          ALL DAYS
                         </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* VIEW MODE 1: TIMETABLE GRID VIEW (With Saturday fully visible, no horizontal scroll) */}
-                {viewMode === 'grid' && (
-                  <div className="border border-blue-200/80 rounded-[16px] bg-white w-full overflow-hidden shadow-xs">
-                    <div className="w-full select-none">
-                      {/* Header Row */}
-                      <div className="grid grid-cols-[64px_repeat(6,minmax(0,1fr))] sm:grid-cols-[74px_repeat(6,minmax(0,1fr))] md:grid-cols-[84px_repeat(6,minmax(0,1fr))] bg-gradient-to-r from-[#0c1f38] via-[#1a4a8b] to-[#0284c7] min-h-[52px] items-center text-white border-b border-blue-900/20">
-                        {/* Sticky TIME Column Header */}
-                        <div className="text-center font-heading text-[13px] sm:text-[14px] md:text-[15px] font-black tracking-wider text-cyan-200 bg-[#0c1f38] h-full flex items-center justify-center border-r border-white/20 shadow-sm">
-                          TIME
-                        </div>
-                        {/* Weekday Headers */}
-                        {WEEKDAYS.map((day, idx) => (
-                          <div
-                            key={day}
-                            className={`text-center font-heading text-[14px] sm:text-[15px] md:text-[16.5px] font-black tracking-wider uppercase h-full flex items-center justify-center ${
-                              idx < WEEKDAYS.length - 1 ? 'border-r border-white/10' : ''
-                            } ${selectedDayFilter !== 'ALL' && selectedDayFilter !== day ? 'opacity-40' : ''}`}
-                          >
-                            {day}
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Timetable Body Grid */}
-                      <div className="relative grid grid-cols-[64px_repeat(6,minmax(0,1fr))] sm:grid-cols-[74px_repeat(6,minmax(0,1fr))] md:grid-cols-[84px_repeat(6,minmax(0,1fr))]">
-                        {/* Sticky Left: Time Labels Column */}
-                        <div className="flex flex-col bg-slate-50/95 backdrop-blur-xs border-r border-blue-200/80 shadow-[2px_0_8px_rgba(15,40,84,0.06)]">
-                          {timeLabels.map((timeLabel, rIdx) => (
-                            <div
-                              key={rIdx}
-                              style={{ height: `${SLOT_HEIGHT}px` }}
-                              className={`flex items-center justify-center text-[11.5px] sm:text-[12.5px] md:text-[13.5px] font-bold text-slate-700 border-b border-blue-100/80 px-0.5 sm:px-1 ${
-                                rIdx % 2 === 0 ? 'bg-slate-50/80' : 'bg-white/80'
-                              }`}
-                            >
-                              {timeLabel}
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* 6 Weekday Columns & Background Grid Cells */}
-                        {WEEKDAYS.map((day, colIdx) => {
-                          const isDimmed = selectedDayFilter !== 'ALL' && selectedDayFilter !== day;
+                        {WEEKDAYS.map((day) => {
+                          const countForDay = validatedSchedule.filter((item) => item.day === day).length;
+                          const isFilterActive = selectedDayFilter === day;
 
                           return (
-                            <div
+                            <button
                               key={day}
-                              className={`relative flex flex-col ${
-                                colIdx < WEEKDAYS.length - 1 ? 'border-r border-blue-100' : ''
-                              } ${isDimmed ? 'bg-slate-100/30' : ''}`}
+                              type="button"
+                              onClick={() => setSelectedDayFilter(day)}
+                              className={`px-2.5 py-1.5 rounded-md text-[11px] font-heading font-extrabold transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
+                                isFilterActive
+                                  ? 'bg-[#0284c7] text-white shadow-2xs'
+                                  : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
+                              }`}
                             >
-                              {Array.from({ length: totalSlots }).map((_, rIdx) => (
-                                <div
-                                  key={rIdx}
-                                  style={{ height: `${SLOT_HEIGHT}px` }}
-                                  className={`border-b border-blue-100/60 ${
-                                    rIdx % 2 === 0 ? 'bg-transparent' : 'bg-blue-50/20'
+                              <span>{day}</span>
+                              {countForDay > 0 && (
+                                <span
+                                  className={`text-[9px] px-1 rounded-full ${
+                                    isFilterActive ? 'bg-white/25 text-white' : 'bg-blue-200/80 text-blue-950'
                                   }`}
-                                />
-                              ))}
-                            </div>
+                                >
+                                  {countForDay}
+                                </span>
+                              )}
+                            </button>
                           );
                         })}
-
-                        {/* 8. Timetable Scheduled Events Overlay */}
-                        <div
-                          className="absolute inset-0 left-[64px] sm:left-[74px] md:left-[84px] grid grid-cols-6 pointer-events-none"
-                          style={{
-                            height: `${totalSlots * SLOT_HEIGHT}px`,
-                          }}
-                        >
-                          {WEEKDAYS.map((day, colIdx) => {
-                            const eventsForDay = validatedSchedule.filter((e) => e.colIndex === colIdx);
-                            const isDimmed = selectedDayFilter !== 'ALL' && selectedDayFilter !== day;
-
-                            return (
-                              <div key={day} className={`relative h-full w-full ${isDimmed ? 'opacity-25' : ''}`}>
-                                {eventsForDay.map((eventData, eIdx) => {
-                                  const topPx = eventData.startSlot * SLOT_HEIGHT;
-                                  const heightPx = eventData.spanSlots * SLOT_HEIGHT;
-                                  const theme = eventData.colorTheme;
-                                  const isShortSlot = eventData.spanSlots === 1; // 30 mins
-                                  const isOneHour = eventData.spanSlots === 2; // 1 hour
-                                  const isLongSlot = eventData.spanSlots >= 3; // 1.5h to 3h (e.g. Laboratory)
-
-                                  // Sub-column offset for overlapping classes within the same day
-                                  const widthPercent = 100 / eventData.overlapTotal;
-                                  const leftPercent = eventData.overlapIndex * widthPercent;
-
-                                  const typeLabel = eventData.typeInfo.isLab
-                                    ? 'Lab'
-                                    : eventData.typeInfo.isOnline
-                                    ? 'Online'
-                                    : 'Lecture';
-
-                                  return (
-                                    <article
-                                      key={`${eventData.item.courseCode}-${eventData.originalIndex}-${eIdx}`}
-                                      tabIndex={0}
-                                      role="button"
-                                      onClick={() => setSelectedClassModal({
-                                        item: eventData.item,
-                                        day: eventData.day,
-                                        formattedTime: eventData.formattedTime,
-                                        profName: currentProfessor.name,
-                                        profTitle: currentProfessor.title,
-                                        theme,
-                                        typeInfo: eventData.typeInfo,
-                                      })}
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                          e.preventDefault();
-                                          setSelectedClassModal({
-                                            item: eventData.item,
-                                            day: eventData.day,
-                                            formattedTime: eventData.formattedTime,
-                                            profName: currentProfessor.name,
-                                            profTitle: currentProfessor.title,
-                                            theme,
-                                            typeInfo: eventData.typeInfo,
-                                          });
-                                        }
-                                      }}
-                                      title={`Click for details: ${eventData.item.courseCode} - ${eventData.item.subject} (${eventData.formattedTime}, ${eventData.item.room})`}
-                                      aria-label={`${eventData.day}, ${eventData.formattedTime}, ${eventData.item.subject}, Section ${eventData.item.section}, Room ${eventData.item.room}`}
-                                      style={{
-                                        top: `${topPx + 2}px`,
-                                        height: `${heightPx - 4}px`,
-                                        left: `calc(${leftPercent}% + 2px)`,
-                                        width: `calc(${widthPercent}% - 4px)`,
-                                        animationDelay: `${eIdx * 30}ms`,
-                                      }}
-                                      className={`absolute pointer-events-auto rounded-[10px] ${
-                                        isShortSlot ? 'p-1 sm:p-1.5' : isOneHour ? 'p-1.5 sm:p-2.5' : 'p-2 sm:p-3'
-                                      } flex flex-col justify-between overflow-hidden transition-all duration-200 cursor-pointer hover:scale-[1.01] hover:z-30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none animate-event-card ${theme.cardClasses} ${theme.leftBorder}`}
-                                    >
-                                      {/* UPPER SECTION: Course Code & Section */}
-                                      <div className="flex flex-col gap-0.5 w-full">
-                                        <div className="flex items-center justify-between gap-1 leading-none">
-                                          <div className="flex items-center gap-1.5 min-w-0">
-                                            <span className={`text-[13.5px] sm:text-[15.5px] md:text-[17px] font-heading font-black tracking-tight truncate ${theme.codeClasses}`}>
-                                              {eventData.item.courseCode}
-                                            </span>
-                                            <span className={`text-[10px] sm:text-[11px] md:text-[12px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider shrink-0 font-extrabold ${theme.badgeClasses}`}>
-                                              {eventData.item.section}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      {/* MIDDLE SECTION: Full Subject Name */}
-                                      {!isShortSlot && (
-                                        <div className="my-0.5 overflow-hidden">
-                                          <h5
-                                            className={`font-heading font-extrabold text-[12px] sm:text-[13px] md:text-[14px] leading-tight ${
-                                              isLongSlot ? 'line-clamp-3' : 'line-clamp-2'
-                                            } ${theme.textColor}`}
-                                          >
-                                            {eventData.item.subject}
-                                          </h5>
-                                        </div>
-                                      )}
-
-                                      {/* BOTTOM SECTION: Room / Venue with full width */}
-                                      <div className="mt-auto pt-1 flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] md:text-[13.5px] border-t border-black/10 leading-tight min-w-0 overflow-hidden font-black text-slate-800" title={eventData.item.room}>
-                                        <svg className="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                        </svg>
-                                        <span className="truncate">{eventData.item.room}</span>
-                                      </div>
-                                    </article>
-                                  );
-                                })}
-                              </div>
-                            );
-                          })}
-                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
 
-                {/* VIEW MODE: MINIMAL ROUNDED BLOCKS VIEW (Exact format matching attached image) */}
-                {viewMode === 'blocks' && (
-                  <div className="w-full bg-[#eef5fc] rounded-[24px] p-3.5 sm:p-6 border border-blue-200/80 shadow-xs overflow-x-auto">
-                    <div className="min-w-[720px]">
-                      {/* 1. Day Pill Headers: M, T, W, T, F, S */}
-                      <div className="grid grid-cols-6 gap-2.5 sm:gap-3.5 mb-3.5">
-                        {WEEKDAYS.map((day) => (
-                          <div
-                            key={day}
-                            className={`bg-white rounded-full py-2 sm:py-2.5 flex items-center justify-center shadow-[0_2px_8px_rgba(15,40,84,0.04)] border border-blue-100/90 transition-opacity ${
-                              selectedDayFilter !== 'ALL' && selectedDayFilter !== day ? 'opacity-35' : ''
-                            }`}
-                          >
-                            <span className="font-heading font-black text-[20px] sm:text-[24px] text-slate-500/90 tracking-wide select-none">
-                              {DAY_LETTERS[day]}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
+                    {/* VIEW MODE 1: TIME TABLE (Default View with Horizontal Scroll & Sticky Time on Mobile) */}
+                    {scheduleFormat === 'grid' && (
+                      <div>
+                        {/* Mobile Swipe Tip */}
+                        <div className="md:hidden flex items-center justify-between px-3 py-2 bg-blue-50/90 rounded-xl border border-blue-200/80 mb-3 text-[11.5px] font-bold text-blue-900 shadow-2xs">
+                          <span className="flex items-center gap-1.5">
+                            <svg className="w-4 h-4 text-[#0284c7] shrink-0 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                            </svg>
+                            Swipe horizontally to view Mon–Sat
+                          </span>
+                          <span className="text-[10px] text-blue-800 uppercase tracking-wider font-extrabold bg-white px-2 py-0.5 rounded shadow-2xs">
+                            Sticky Time
+                          </span>
+                        </div>
 
-                      {/* 2. 6 Daily Columns of Proportional Class Blocks & Neutral Grey Gaps */}
-                      <div className="grid grid-cols-6 gap-2.5 sm:gap-3.5 items-start">
-                        {WEEKDAYS.map((day) => {
-                          const isDimmed = selectedDayFilter !== 'ALL' && selectedDayFilter !== day;
-                          const blocks = getDayTimelineBlocks(
-                            currentProfessor.schedule,
-                            day,
-                            startBaseMin,
-                            endBaseMin
-                          );
+                        <div className="border border-blue-200/80 rounded-[18px] bg-white w-full overflow-x-auto custom-timetable-scrollbar shadow-xs">
+                          <div className="min-w-[760px] md:min-w-0 w-full select-none">
+                            {/* Header Row */}
+                            <div className="grid grid-cols-[68px_repeat(6,minmax(0,1fr))] sm:grid-cols-[78px_repeat(6,minmax(0,1fr))] md:grid-cols-[88px_repeat(6,minmax(0,1fr))] bg-gradient-to-r from-[#0c1f38] via-[#1a4a8b] to-[#0284c7] min-h-[52px] items-center text-white border-b border-blue-900/20">
+                              {/* Sticky TIME Column Header */}
+                              <div className="sticky left-0 z-30 text-center font-heading text-[12.5px] sm:text-[14px] md:text-[15px] font-black tracking-wider text-cyan-200 bg-[#0c1f38] h-full flex items-center justify-center border-r border-white/20 shadow-sm">
+                                TIME
+                              </div>
+                              {/* Weekday Headers */}
+                              {WEEKDAYS.map((day, idx) => (
+                                <div
+                                  key={day}
+                                  className={`text-center font-heading text-[13.5px] sm:text-[15px] md:text-[16.5px] font-black tracking-wider uppercase h-full flex items-center justify-center ${
+                                    idx < WEEKDAYS.length - 1 ? 'border-r border-white/10' : ''
+                                  } ${selectedDayFilter !== 'ALL' && selectedDayFilter !== day ? 'opacity-40' : ''}`}
+                                >
+                                  {day}
+                                </div>
+                              ))}
+                            </div>
 
-                          return (
-                            <div
-                              key={day}
-                              className={`flex flex-col gap-2.5 sm:gap-3 transition-opacity ${
-                                isDimmed ? 'opacity-30' : ''
-                              }`}
-                            >
-                              {blocks.map((block, bIdx) => {
-                                const heightPx = block.spanSlots * 46 + (block.spanSlots - 1) * 10;
+                            {/* Timetable Body Grid */}
+                            <div className="relative grid grid-cols-[68px_repeat(6,minmax(0,1fr))] sm:grid-cols-[78px_repeat(6,minmax(0,1fr))] md:grid-cols-[88px_repeat(6,minmax(0,1fr))]">
+                              {/* Sticky Left: Time Labels Column */}
+                              <div className="sticky left-0 z-20 flex flex-col bg-slate-50/98 backdrop-blur-md border-r border-blue-200/90 shadow-[4px_0_10px_rgba(15,40,84,0.08)]">
+                                {timeLabels.map((timeLabel, rIdx) => (
+                                  <div
+                                    key={rIdx}
+                                    style={{ height: `${SLOT_HEIGHT}px` }}
+                                    className={`flex items-center justify-center text-[11px] sm:text-[12.5px] md:text-[13.5px] font-bold text-slate-700 border-b border-blue-100/80 px-0.5 sm:px-1 ${
+                                      rIdx % 2 === 0 ? 'bg-slate-50/90' : 'bg-white/90'
+                                    }`}
+                                  >
+                                    {timeLabel}
+                                  </div>
+                                ))}
+                              </div>
 
-                                if (block.isGap) {
-                                  return (
-                                    <div
-                                      key={bIdx}
-                                      style={{ minHeight: `${heightPx}px`, height: `${heightPx}px` }}
-                                      className="bg-[#d2d6db] rounded-[18px] sm:rounded-[20px] w-full shrink-0 shadow-2xs transition-all"
-                                      aria-label="Free period"
-                                    />
-                                  );
-                                }
-
-                                const item = block.item!;
-                                const typeInfo = block.typeInfo!;
+                              {/* 6 Weekday Columns & Background Grid Cells */}
+                              {WEEKDAYS.map((day, colIdx) => {
+                                const isDimmed = selectedDayFilter !== 'ALL' && selectedDayFilter !== day;
 
                                 return (
                                   <div
-                                    key={bIdx}
-                                    role="button"
-                                    tabIndex={0}
-                                    onClick={() => setSelectedClassModal({
-                                      item,
-                                      day,
-                                      formattedTime: formatBlockTime(item.start, item.end),
-                                      profName: currentProfessor.name,
-                                      profTitle: currentProfessor.title,
-                                      theme: COLOR_THEMES[bIdx % COLOR_THEMES.length],
-                                      typeInfo,
-                                    })}
-                                    onKeyDown={(e) => {
-                                      if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault();
-                                        setSelectedClassModal({
+                                    key={day}
+                                    className={`relative flex flex-col ${
+                                      colIdx < WEEKDAYS.length - 1 ? 'border-r border-blue-100' : ''
+                                    } ${isDimmed ? 'bg-slate-100/30' : ''}`}
+                                  >
+                                    {Array.from({ length: totalSlots }).map((_, rIdx) => (
+                                      <div
+                                        key={rIdx}
+                                        style={{ height: `${SLOT_HEIGHT}px` }}
+                                        className={`border-b border-blue-100/60 ${
+                                          rIdx % 2 === 0 ? 'bg-transparent' : 'bg-blue-50/20'
+                                        }`}
+                                      />
+                                    ))}
+                                  </div>
+                                );
+                              })}
+
+                              {/* 8. Timetable Scheduled Events Overlay */}
+                              <div
+                                className="absolute inset-y-0 left-[68px] sm:left-[78px] md:left-[88px] right-0 grid grid-cols-6 pointer-events-none"
+                                style={{
+                                  height: `${totalSlots * SLOT_HEIGHT}px`,
+                                }}
+                              >
+                                {WEEKDAYS.map((day, colIdx) => {
+                                  const eventsForDay = validatedSchedule.filter((e) => e.colIndex === colIdx);
+                                  const isDimmed = selectedDayFilter !== 'ALL' && selectedDayFilter !== day;
+
+                                  return (
+                                    <div key={day} className={`relative h-full w-full ${isDimmed ? 'opacity-25' : ''}`}>
+                                      {eventsForDay.map((eventData, eIdx) => {
+                                        const topPx = eventData.startSlot * SLOT_HEIGHT;
+                                        const heightPx = eventData.spanSlots * SLOT_HEIGHT;
+                                        const theme = eventData.colorTheme;
+                                        const isShortSlot = eventData.spanSlots === 1; // 30 mins
+                                        const isOneHour = eventData.spanSlots === 2; // 1 hour
+                                        const isLongSlot = eventData.spanSlots >= 3; // 1.5h to 3h (e.g. Laboratory)
+
+                                        // Sub-column offset for overlapping classes within the same day
+                                        const widthPercent = 100 / eventData.overlapTotal;
+                                        const leftPercent = eventData.overlapIndex * widthPercent;
+
+                                        return (
+                                          <article
+                                            key={`${eventData.item.courseCode}-${eventData.originalIndex}-${eIdx}`}
+                                            tabIndex={0}
+                                            role="button"
+                                            onClick={() => setSelectedClassModal({
+                                              item: eventData.item,
+                                              day: eventData.day,
+                                              formattedTime: eventData.formattedTime,
+                                              profName: currentProfessor.name,
+                                              profTitle: currentProfessor.title,
+                                              theme,
+                                              typeInfo: eventData.typeInfo,
+                                            })}
+                                            onKeyDown={(e) => {
+                                              if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setSelectedClassModal({
+                                                  item: eventData.item,
+                                                  day: eventData.day,
+                                                  formattedTime: eventData.formattedTime,
+                                                  profName: currentProfessor.name,
+                                                  profTitle: currentProfessor.title,
+                                                  theme,
+                                                  typeInfo: eventData.typeInfo,
+                                                });
+                                              }
+                                            }}
+                                            title={`Click for details: ${eventData.item.courseCode} - ${eventData.item.subject} (${eventData.formattedTime}, ${eventData.item.room})`}
+                                            aria-label={`${eventData.day}, ${eventData.formattedTime}, ${eventData.item.subject}, Section ${eventData.item.section}, Room ${eventData.item.room}`}
+                                            style={{
+                                              top: `${topPx + 2}px`,
+                                              height: `${heightPx - 4}px`,
+                                              left: `calc(${leftPercent}% + 2px)`,
+                                              width: `calc(${widthPercent}% - 4px)`,
+                                              animationDelay: `${eIdx * 30}ms`,
+                                            }}
+                                            className={`absolute pointer-events-auto rounded-[10px] ${
+                                              isShortSlot ? 'p-1 sm:p-1.5' : isOneHour ? 'p-1.5 sm:p-2.5' : 'p-2 sm:p-3'
+                                            } flex flex-col justify-between overflow-hidden transition-all duration-200 cursor-pointer hover:scale-[1.01] hover:z-30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none animate-event-card ${theme.cardClasses} ${theme.leftBorder}`}
+                                          >
+                                            {isShortSlot ? (
+                                              <div className="flex flex-col justify-between h-full w-full overflow-hidden leading-none">
+                                                <div className="flex items-center justify-between gap-1">
+                                                  <span className={`text-[12px] sm:text-[14px] font-heading font-black tracking-tight truncate ${theme.codeClasses}`}>
+                                                    {eventData.item.courseCode}
+                                                  </span>
+                                                  <span className={`text-[9.5px] sm:text-[10.5px] px-1 py-0.5 rounded uppercase tracking-wider shrink-0 font-extrabold ${theme.badgeClasses}`}>
+                                                    {eventData.item.section}
+                                                  </span>
+                                                </div>
+                                                <div className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black text-slate-800 leading-tight truncate min-w-0" title={eventData.item.room}>
+                                                  <svg className="w-3 h-3 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                  </svg>
+                                                  <span className="truncate">{eventData.item.room}</span>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                {/* UPPER SECTION: Course Code & Section */}
+                                                <div className="flex flex-col gap-0.5 w-full">
+                                                  <div className="flex items-center justify-between gap-1 leading-none">
+                                                    <div className="flex items-center gap-1.5 min-w-0">
+                                                      <span className={`text-[13.5px] sm:text-[15.5px] md:text-[17px] font-heading font-black tracking-tight truncate ${theme.codeClasses}`}>
+                                                        {eventData.item.courseCode}
+                                                      </span>
+                                                      <span className={`text-[10px] sm:text-[11px] md:text-[12px] px-1.5 py-0.5 rounded-sm uppercase tracking-wider shrink-0 font-extrabold ${theme.badgeClasses}`}>
+                                                        {eventData.item.section}
+                                                      </span>
+                                                    </div>
+                                                  </div>
+                                                </div>
+
+                                                {/* MIDDLE SECTION: Full Subject Name */}
+                                                <div className="my-0.5 overflow-hidden">
+                                                  <h5
+                                                    className={`font-heading font-extrabold text-[12px] sm:text-[13px] md:text-[14px] leading-tight ${
+                                                      isLongSlot ? 'line-clamp-3' : 'line-clamp-2'
+                                                    } ${theme.textColor}`}
+                                                  >
+                                                    {eventData.item.subject}
+                                                  </h5>
+                                                </div>
+
+                                                {/* BOTTOM SECTION: Room / Venue with full width */}
+                                                <div className="mt-auto pt-1 flex items-center gap-1.5 text-[11.5px] sm:text-[12.5px] md:text-[13.5px] border-t border-black/10 leading-tight min-w-0 overflow-hidden font-black text-slate-800" title={eventData.item.room}>
+                                                  <svg className="w-3.5 h-3.5 text-slate-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                  </svg>
+                                                  <span className="truncate">{eventData.item.room}</span>
+                                                </div>
+                                              </>
+                                            )}
+                                          </article>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VIEW MODE 2: MINIMAL ROUNDED BLOCKS VIEW */}
+                    {scheduleFormat === 'blocks' && (
+                      <div className="w-full bg-[#eef5fc] rounded-[24px] p-3.5 sm:p-6 border border-blue-200/80 shadow-xs overflow-x-auto custom-timetable-scrollbar">
+                        <div className="min-w-[720px]">
+                          {/* 1. Day Pill Headers: M, T, W, T, F, S */}
+                          <div className="grid grid-cols-6 gap-2.5 sm:gap-3.5 mb-3.5">
+                            {WEEKDAYS.map((day) => (
+                              <div
+                                key={day}
+                                className={`bg-white rounded-full py-2 sm:py-2.5 flex items-center justify-center shadow-[0_2px_8px_rgba(15,40,84,0.04)] border border-blue-100/90 transition-opacity ${
+                                  selectedDayFilter !== 'ALL' && selectedDayFilter !== day ? 'opacity-35' : ''
+                                }`}
+                              >
+                                <span className="font-heading font-black text-[20px] sm:text-[24px] text-slate-500/90 tracking-wide select-none">
+                                  {DAY_LETTERS[day]}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* 2. 6 Daily Columns of Proportional Class Blocks & Neutral Grey Gaps */}
+                          <div className="grid grid-cols-6 gap-2.5 sm:gap-3.5 items-start">
+                            {WEEKDAYS.map((day) => {
+                              const isDimmed = selectedDayFilter !== 'ALL' && selectedDayFilter !== day;
+                              const blocks = getDayTimelineBlocks(
+                                currentProfessor.schedule,
+                                day,
+                                startBaseMin,
+                                endBaseMin
+                              );
+
+                              return (
+                                <div
+                                  key={day}
+                                  className={`flex flex-col gap-2.5 sm:gap-3 transition-opacity ${
+                                    isDimmed ? 'opacity-30' : ''
+                                  }`}
+                                >
+                                  {blocks.map((block, bIdx) => {
+                                    if (block.isGap) {
+                                      const gapHeightPx = Math.max(36, block.spanSlots * 44 + (block.spanSlots - 1) * 8);
+                                      return (
+                                        <div
+                                          key={bIdx}
+                                          style={{ minHeight: `${gapHeightPx}px`, height: `${gapHeightPx}px` }}
+                                          className="bg-[#d2d6db] rounded-[18px] sm:rounded-[20px] w-full shrink-0 shadow-2xs transition-all"
+                                          aria-label="Free period"
+                                        />
+                                      );
+                                    }
+
+                                    const item = block.item!;
+                                    const typeInfo = block.typeInfo!;
+                                    const classHeightPx = Math.max(76, block.spanSlots * 72 + (block.spanSlots - 1) * 10);
+
+                                    return (
+                                      <div
+                                        key={bIdx}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setSelectedClassModal({
                                           item,
                                           day,
                                           formattedTime: formatBlockTime(item.start, item.end),
@@ -2279,415 +2428,393 @@ export default function App() {
                                           profTitle: currentProfessor.title,
                                           theme: COLOR_THEMES[bIdx % COLOR_THEMES.length],
                                           typeInfo,
-                                        });
-                                      }
-                                    }}
-                                    style={{ minHeight: `${heightPx}px`, height: `${heightPx}px` }}
-                                    className="bg-[#cde8fd] hover:bg-[#bfe2fd] border border-[#b8dcfa] rounded-[18px] sm:rounded-[20px] p-2 sm:p-2.5 flex flex-col items-center justify-center text-center shadow-xs cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all shrink-0 overflow-hidden select-none"
-                                    title={`${item.courseCode} - ${item.subject} (${item.start}-${item.end})`}
-                                  >
-                                    {/* Line 1: Time */}
-                                    <span className="font-extrabold text-[10px] sm:text-[11px] md:text-[11.5px] text-slate-800 uppercase tracking-tight leading-tight">
-                                      {formatBlockTime(item.start, item.end)}
-                                    </span>
+                                        })}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setSelectedClassModal({
+                                              item,
+                                              day,
+                                              formattedTime: formatBlockTime(item.start, item.end),
+                                              profName: currentProfessor.name,
+                                              profTitle: currentProfessor.title,
+                                              theme: COLOR_THEMES[bIdx % COLOR_THEMES.length],
+                                              typeInfo,
+                                            });
+                                          }
+                                        }}
+                                        style={{ minHeight: `${classHeightPx}px`, height: `${classHeightPx}px` }}
+                                        className="bg-[#cde8fd] hover:bg-[#bfe2fd] border border-[#b4daf9] rounded-[18px] sm:rounded-[20px] p-2 sm:p-2.5 flex flex-col items-center justify-center text-center shadow-xs cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all shrink-0 overflow-hidden select-none"
+                                        title={`${item.courseCode} - ${item.subject} (${item.start}-${item.end})`}
+                                      >
+                                        {/* Line 1: Time */}
+                                        <span className="font-extrabold text-[10px] sm:text-[11px] text-slate-800 uppercase tracking-tight leading-none shrink-0">
+                                          {formatBlockTime(item.start, item.end)}
+                                        </span>
 
-                                    {/* Line 2: Course Code */}
-                                    <span className="font-heading font-black text-[14px] sm:text-[16px] md:text-[17px] text-slate-950 leading-tight mt-0.5">
-                                      {item.courseCode}
-                                    </span>
+                                        {/* Line 2: Course Code */}
+                                        <span className="font-heading font-black text-[14px] sm:text-[16px] text-slate-950 leading-tight mt-1 shrink-0">
+                                          {item.courseCode}
+                                        </span>
 
-                                    {/* Line 3: Section */}
-                                    <span className="font-bold text-[10.5px] sm:text-[11.5px] md:text-[12px] text-slate-700 leading-tight mt-0.5">
-                                      {item.section.startsWith('SEC') ? item.section : `SEC ${item.section}`}
-                                    </span>
+                                        {/* Line 3: Section */}
+                                        <span className="font-bold text-[10.5px] sm:text-[11.5px] text-slate-700 leading-tight mt-0.5 shrink-0">
+                                          {item.section.startsWith('SEC') ? item.section : `SEC ${item.section}`}
+                                        </span>
 
-                                    {/* Line 4: Type | Room */}
-                                    <span className="font-semibold text-[10px] sm:text-[11px] text-slate-600 leading-tight mt-0.5 truncate max-w-full px-1">
-                                      {formatBlockVenue(typeInfo, item.room)}
-                                    </span>
-                                  </div>
-                                );
-                              })}
+                                        {/* Line 4: Type | Room */}
+                                        <span className="font-semibold text-[9.5px] sm:text-[10.5px] text-slate-600 leading-tight mt-0.5 truncate max-w-full px-1 shrink-0">
+                                          {formatBlockVenue(typeInfo, item.room)}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* VIEW MODE 3: RESPONSIVE DAY-BY-DAY AGENDA VIEW (Mobile-First / Compact Devices) */}
+                    {scheduleFormat === 'agenda' && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {WEEKDAYS.filter((d) => selectedDayFilter === 'ALL' || selectedDayFilter === d).map((day) => {
+                          const dayEvents = validatedSchedule.filter((e) => e.day === day);
+
+                          return (
+                            <div
+                              key={day}
+                              className="bg-slate-50/80 border border-blue-100/90 rounded-[20px] p-4 sm:p-5 flex flex-col shadow-2xs"
+                            >
+                              {/* Day Header */}
+                              <div className="flex items-center justify-between pb-3 mb-3 border-b border-blue-100">
+                                <div className="flex items-center gap-2.5">
+                                  <span className="w-8 h-8 rounded-xl bg-[#0f2854] text-white font-heading font-extrabold text-[13px] flex items-center justify-center">
+                                    {day.slice(0, 2)}
+                                  </span>
+                                  <h5 className="font-heading font-black text-[16.5px] text-[#0c1f38]">
+                                    {day === 'MON' && 'Monday'}
+                                    {day === 'TUE' && 'Tuesday'}
+                                    {day === 'WED' && 'Wednesday'}
+                                    {day === 'THU' && 'Thursday'}
+                                    {day === 'FRI' && 'Friday'}
+                                    {day === 'SAT' && 'Saturday'}
+                                  </h5>
+                                </div>
+                                <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-900 border border-blue-200/70">
+                                  {dayEvents.length} {dayEvents.length === 1 ? 'class' : 'classes'}
+                                </span>
+                              </div>
+
+                              {/* Day Event Items */}
+                              {dayEvents.length === 0 ? (
+                                <div className="py-8 text-center text-slate-400 text-[13px] font-medium italic">
+                                  No classes scheduled
+                                </div>
+                              ) : (
+                                <div className="flex flex-col gap-2.5">
+                                  {dayEvents.map((ev, idx) => (
+                                    <div
+                                      key={idx}
+                                      onClick={() => setSelectedClassModal({
+                                        item: ev.item,
+                                        day: ev.day,
+                                        formattedTime: ev.formattedTime,
+                                        profName: currentProfessor.name,
+                                        profTitle: currentProfessor.title,
+                                        theme: ev.colorTheme,
+                                        typeInfo: ev.typeInfo,
+                                      })}
+                                      className="p-3.5 bg-white rounded-[14px] border border-blue-100/90 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer text-left flex flex-col gap-2"
+                                    >
+                                      {/* Upper line: Code, Section & Lab badge */}
+                                      <div className="flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5">
+                                          <span className="font-heading font-black text-[14px] text-blue-950">
+                                            {ev.item.courseCode}
+                                          </span>
+                                          <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-blue-50 text-blue-800 border border-blue-200 font-extrabold uppercase">
+                                            {ev.item.section}
+                                          </span>
+                                        </div>
+                                        <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${ev.typeInfo.badgeClass}`}>
+                                          {ev.typeInfo.label}
+                                        </span>
+                                      </div>
+
+                                      {/* Subject Title */}
+                                      <h6 className="font-heading font-bold text-[13.5px] text-[#0c1f38] leading-snug line-clamp-2">
+                                        {ev.item.subject}
+                                      </h6>
+
+                                      {/* Time & Room info */}
+                                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11.5px] font-medium text-slate-600">
+                                        <span className="font-bold text-blue-700 flex items-center gap-1">
+                                          <svg className="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                                            <polyline points="12 6 12 12 16 14" strokeWidth="2" strokeLinecap="round" />
+                                          </svg>
+                                          {ev.formattedTime}
+                                        </span>
+                                        <span className="font-bold text-slate-700 truncate max-w-[150px] flex items-center gap-1" title={ev.item.room}>
+                                          <svg className="w-3.5 h-3.5 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          </svg>
+                                          {ev.item.room}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
                       </div>
-                    </div>
+                    )}
                   </div>
-                )}
+                </div>
+              )}
 
-                {/* VIEW MODE 2: RESPONSIVE DAY-BY-DAY AGENDA VIEW (Mobile-First / Compact Devices) */}
-                {viewMode === 'agenda' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {WEEKDAYS.filter((d) => selectedDayFilter === 'ALL' || selectedDayFilter === d).map((day) => {
-                      const dayEvents = validatedSchedule.filter((e) => e.day === day);
+              {/* 9. Panel Footer */}
+              <div className="bg-[#f0f6fe] border-t border-blue-100/90 min-h-[58px] px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+                <span className="text-[12px] md:text-[13px] font-medium text-blue-900/75">
+                  Click on any class block to view complete course, time, room, and faculty details.
+                </span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800/60">
+                  OFFICIAL CS TIMETABLE
+                </span>
+              </div>
+            </section>
+          </>
+        )}
 
-                      return (
-                        <div
-                          key={day}
-                          className="bg-slate-50/70 border border-blue-100/90 rounded-[18px] p-4 flex flex-col shadow-2xs"
-                        >
-                          {/* Day Header */}
-                          <div className="flex items-center justify-between pb-3 mb-3 border-b border-blue-100">
-                            <div className="flex items-center gap-2">
-                              <span className="w-8 h-8 rounded-lg bg-[#0f2854] text-white font-heading font-extrabold text-[13px] flex items-center justify-center">
-                                {day.slice(0, 2)}
-                              </span>
-                              <h5 className="font-heading font-extrabold text-[16px] text-[#0c1f38]">
-                                {day === 'MON' && 'Monday'}
-                                {day === 'TUE' && 'Tuesday'}
-                                {day === 'WED' && 'Wednesday'}
-                                {day === 'THU' && 'Thursday'}
-                                {day === 'FRI' && 'Friday'}
-                                {day === 'SAT' && 'Saturday'}
-                              </h5>
-                            </div>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">
-                              {dayEvents.length} {dayEvents.length === 1 ? 'class' : 'classes'}
-                            </span>
-                          </div>
+        {/* Consultation Hours Tab - Official TIP-ACAD-016 Format for CS Department */}
+        {activeTab === 'consultation' && (
+          <section className="pt-8 md:pt-12 animate-fadeIn">
+            {/* Header / Intro banner */}
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div>
+                <div className="inline-flex items-center gap-2 mb-2.5 px-3 py-1 rounded-full bg-blue-100/70 border border-blue-200/80 shadow-2xs">
+                  <span className="w-2 h-2 bg-[#0284c7] rounded-full inline-block animate-pulse" />
+                  <span className="text-[11px] md:text-[12px] font-extrabold uppercase tracking-widest text-[#0284c7]">
+                    ACADEMIC CONSULTATION HOURS
+                  </span>
+                </div>
+                <h2 className="font-heading font-black text-[28px] sm:text-[38px] md:text-[44px] leading-[1.1] text-[#0c1f38]">
+                  Faculty Consultation Schedule
+                </h2>
+                <p className="mt-2 text-[14px] sm:text-[16px] text-slate-600 max-w-[620px]">
+                  Official faculty consultation hours and venue for the Computer Science Department (Form TIP-ACAD-016).
+                </p>
+              </div>
 
-                          {/* Day Event Items */}
-                          {dayEvents.length === 0 ? (
-                            <div className="py-8 text-center text-slate-400 text-[13px] font-medium italic">
-                              No classes scheduled
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-2.5">
-                              {dayEvents.map((ev, idx) => (
-                                <div
-                                  key={idx}
-                                  onClick={() => setSelectedClassModal({
-                                    item: ev.item,
-                                    day: ev.day,
-                                    formattedTime: ev.formattedTime,
-                                    profName: currentProfessor.name,
-                                    profTitle: currentProfessor.title,
-                                    theme: ev.colorTheme,
-                                    typeInfo: ev.typeInfo,
-                                  })}
-                                  className="p-3 bg-white rounded-[12px] border border-blue-100/90 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer text-left flex flex-col gap-1.5"
-                                >
-                                  {/* Upper line: Code, Section & Lab badge */}
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-1.5">
-                                      <span className="font-heading font-extrabold text-[13px] text-blue-950">
-                                        {ev.item.courseCode}
-                                      </span>
-                                      <span className="text-[10px] px-1.5 py-0.5 rounded-sm bg-blue-50 text-blue-800 border border-blue-200 font-bold uppercase">
-                                        {ev.item.section}
-                                      </span>
-                                    </div>
-                                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase border ${ev.typeInfo.badgeClass}`}>
-                                      {ev.typeInfo.label}
-                                    </span>
-                                  </div>
-
-                                  {/* Subject Title */}
-                                  <h6 className="font-heading font-bold text-[13px] text-[#0c1f38] leading-snug line-clamp-2">
-                                    {ev.item.subject}
-                                  </h6>
-
-                                  {/* Time & Room info */}
-                                  <div className="flex items-center justify-between pt-1.5 border-t border-slate-100 text-[11px] font-medium text-slate-600">
-                                    <span className="font-bold text-blue-700 flex items-center gap-1">
-                                      <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <circle cx="12" cy="12" r="10" strokeWidth="2" />
-                                        <polyline points="12 6 12 12 16 14" strokeWidth="2" strokeLinecap="round" />
-                                      </svg>
-                                      {ev.formattedTime}
-                                    </span>
-                                    <span className="font-semibold text-slate-700 truncate max-w-[140px] flex items-center gap-1">
-                                      <svg className="w-3 h-3 text-slate-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                                      </svg>
-                                      {ev.item.room}
-                                    </span>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {/* VIEW MODE 3: PRINTABLE / SCREENSHOT SHEET */}
-                {viewMode === 'printable' && (
-                  <div className="flex flex-col gap-6">
-                    {/* Top Action & Instructions Toolbar (Hidden when printed) */}
-                    <div className="no-print bg-blue-50/90 border border-blue-200 rounded-[16px] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="text-[12px] font-bold text-[#0c1f38]">
-                          High-Contrast Screenshot & Print Mode is active.
-                        </span>
-                        <span className="hidden md:inline text-[11px] text-slate-500">
-                          (Press <kbd className="px-1.5 py-0.5 bg-white border border-slate-300 rounded text-[10px] font-mono font-bold">Win + Shift + S</kbd> to screenshot, or click Print / Save as PDF)
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => window.print()}
-                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#0f2854] to-[#0284c7] text-white text-[12px] font-heading font-bold shadow-xs hover:shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                          </svg>
-                          <span>Print / Save as PDF</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setViewMode('grid')}
-                          className="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 text-[12px] font-heading font-bold transition-all cursor-pointer"
-                        >
-                          Exit Screenshot Mode
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* The Clean Printable Sheet Card */}
-                    <div className="print-area bg-white text-[#0f172a] border-2 border-slate-800 rounded-[14px] p-5 md:p-8 shadow-md">
-                      {/* Document Header */}
-                      <div className="border-b-2 border-slate-900 pb-4 mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div>
-                          <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#0f2854] block">
-                            COLLEGE OF COMPUTER STUDIES · DEPARTMENT OF COMPUTER SCIENCE
-                          </span>
-                          <h3 className="text-[24px] sm:text-[28px] font-heading font-black text-[#0c1f38] leading-tight mt-0.5">
-                            {currentProfessor.name}
-                          </h3>
-                          <p className="text-[13px] sm:text-[14px] font-extrabold text-[#0284c7] mt-0.5">
-                            {currentProfessor.title} · AY 2026–2027 (1st Semester)
-                          </p>
-                        </div>
-                        <div className="text-left sm:text-right sm:border-l-2 border-slate-300 sm:pl-5">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 block">
-                            WEEKLY TEACHING LOAD
-                          </span>
-                          <span className="text-[26px] font-heading font-black text-[#0f2854] leading-tight">
-                            {String(validatedSchedule.length).padStart(2, '0')} <span className="text-[14px] font-bold text-slate-600">Meetings</span>
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Timetable Matrix Grid (High Contrast, Bold Labels, Clear Times & Rooms) */}
-                      <div className="border-2 border-slate-900 rounded-lg overflow-x-auto bg-white mb-6">
-                        <div className="min-w-[920px]">
-                          {/* Day Header Row */}
-                          <div className="grid grid-cols-[80px_repeat(6,1fr)] bg-[#0f2854] text-white min-h-[42px] items-center text-center font-heading text-[12px] font-black tracking-wider">
-                            <div className="border-r border-white/20 py-2.5">TIME</div>
-                            {WEEKDAYS.map((d, i) => (
-                              <div key={d} className={`py-2.5 ${i < WEEKDAYS.length - 1 ? 'border-r border-white/20' : ''}`}>
-                                {d}
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Body Grid */}
-                          <div className="relative grid grid-cols-[80px_repeat(6,1fr)]">
-                            {/* Time labels column */}
-                            <div className="flex flex-col border-r-2 border-slate-900 bg-slate-50 font-mono text-[10px] font-extrabold text-slate-800">
-                              {timeLabels.map((tl, i) => (
-                                <div
-                                  key={i}
-                                  style={{ height: `${SLOT_HEIGHT}px` }}
-                                  className="flex items-center justify-center border-b border-slate-300 px-1"
-                                >
-                                  {tl}
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Column grid lines */}
-                            {WEEKDAYS.map((day, colIdx) => (
-                              <div
-                                key={day}
-                                className={`relative flex flex-col ${colIdx < WEEKDAYS.length - 1 ? 'border-r border-slate-300' : ''}`}
-                              >
-                                {Array.from({ length: totalSlots }).map((_, rIdx) => (
-                                  <div
-                                    key={rIdx}
-                                    style={{ height: `${SLOT_HEIGHT}px` }}
-                                    className="border-b border-slate-200"
-                                  />
-                                ))}
-                              </div>
-                            ))}
-
-                            {/* Scheduled Event Overlays */}
-                            <div
-                              className="absolute inset-0 left-[80px] grid grid-cols-6 pointer-events-none"
-                              style={{ height: `${totalSlots * SLOT_HEIGHT}px` }}
-                            >
-                              {WEEKDAYS.map((day, colIdx) => {
-                                const events = validatedSchedule.filter((e) => e.colIndex === colIdx);
-                                return (
-                                  <div key={day} className="relative h-full w-full">
-                                    {events.map((ev, eIdx) => {
-                                      const topPx = ev.startSlot * SLOT_HEIGHT;
-                                      const heightPx = ev.spanSlots * SLOT_HEIGHT;
-                                      const widthPercent = 100 / ev.overlapTotal;
-                                      const leftPercent = ev.overlapIndex * widthPercent;
-
-                                      return (
-                                        <div
-                                          key={eIdx}
-                                          style={{
-                                            top: `${topPx + 2}px`,
-                                            height: `${heightPx - 4}px`,
-                                            left: `calc(${leftPercent}% + 2px)`,
-                                            width: `calc(${widthPercent}% - 4px)`,
-                                          }}
-                                          className={`absolute rounded-md p-2 flex flex-col justify-between overflow-hidden border-2 shadow-xs ${
-                                            ev.typeInfo.isLab
-                                              ? 'bg-emerald-50/95 border-emerald-700 text-emerald-950'
-                                              : ev.typeInfo.isOnline
-                                              ? 'bg-purple-50/95 border-purple-700 text-purple-950'
-                                              : 'bg-blue-50/95 border-blue-800 text-blue-950'
-                                          }`}
-                                        >
-                                          <div>
-                                            {/* Line 1: Course Code, Section, Type Badge */}
-                                            <div className="flex items-center justify-between gap-1 leading-tight">
-                                              <span className="font-heading font-black text-[12px] sm:text-[13px] tracking-tight">
-                                                {ev.item.courseCode}
-                                              </span>
-                                              <div className="flex items-center gap-1 shrink-0">
-                                                <span className="text-[9px] font-black uppercase px-1 py-0.5 rounded bg-white border border-slate-400">
-                                                  {ev.item.section}
-                                                </span>
-                                                <span className="text-[8px] font-black uppercase px-1 py-0.5 rounded bg-slate-900 text-white">
-                                                  {ev.typeInfo.label}
-                                                </span>
-                                              </div>
-                                            </div>
-
-                                            {/* Line 2: Prominent Schedule Time */}
-                                            <div className="mt-1 font-black text-[10px] leading-tight text-blue-950 bg-white/90 px-1.5 py-0.5 rounded border border-slate-300 inline-block">
-                                              {ev.formattedTime}
-                                            </div>
-
-                                            {/* Line 3: Exact Room / Venue */}
-                                            <div className="mt-0.5 font-extrabold text-[10.5px] text-slate-900 leading-tight">
-                                              {ev.item.room}
-                                            </div>
-                                          </div>
-
-                                          {/* Line 4: Subject Description */}
-                                          {ev.spanSlots >= 2 && (
-                                            <div className="mt-1 text-[10px] font-bold text-slate-800 leading-tight line-clamp-2">
-                                              {ev.item.subject}
-                                            </div>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Official Faculty Class Load Summary Table */}
-                      <div className="border-2 border-slate-900 rounded-lg overflow-hidden bg-white mb-6">
-                        <div className="bg-slate-100 px-4 py-2.5 border-b-2 border-slate-900 flex items-center justify-between">
-                          <h4 className="font-heading font-black text-[12px] uppercase tracking-wider text-slate-900">
-                            Faculty Class Load & Room Schedule
-                          </h4>
-                          <span className="text-[11px] font-bold text-slate-600">
-                            AY 2026–2027 · 1st Sem
-                          </span>
-                        </div>
-                        <div className="overflow-x-auto">
-                          <table className="w-full text-left text-[11px] border-collapse min-w-[700px]">
-                            <thead>
-                              <tr className="bg-slate-800 text-white font-heading font-bold text-[11px]">
-                                <th className="p-2 border-r border-slate-700 text-center w-10">#</th>
-                                <th className="p-2 border-r border-slate-700">Course Code</th>
-                                <th className="p-2 border-r border-slate-700">Section</th>
-                                <th className="p-2 border-r border-slate-700">Descriptive Title</th>
-                                <th className="p-2 border-r border-slate-700 text-center">Type</th>
-                                <th className="p-2 border-r border-slate-700">Day & Time</th>
-                                <th className="p-2">Room / Venue</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {validatedSchedule.map((item, idx) => (
-                                <tr
-                                  key={idx}
-                                  className={`border-b border-slate-200 font-medium ${
-                                    idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'
-                                  }`}
-                                >
-                                  <td className="p-2 border-r border-slate-200 font-bold text-slate-600 text-center">{idx + 1}</td>
-                                  <td className="p-2 border-r border-slate-200 font-black text-blue-950">{item.item.courseCode}</td>
-                                  <td className="p-2 border-r border-slate-200 font-extrabold">{item.item.section}</td>
-                                  <td className="p-2 border-r border-slate-200 text-slate-900 font-medium">{item.item.subject}</td>
-                                  <td className="p-2 border-r border-slate-200 font-bold text-center">
-                                    <span
-                                      className={`px-1.5 py-0.5 rounded text-[9px] font-black ${
-                                        item.typeInfo.isLab
-                                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
-                                          : item.typeInfo.isOnline
-                                          ? 'bg-purple-100 text-purple-900 border border-purple-300'
-                                          : 'bg-blue-100 text-blue-900 border border-blue-300'
-                                      }`}
-                                    >
-                                      {item.typeInfo.label}
-                                    </span>
-                                  </td>
-                                  <td className="p-2 border-r border-slate-200 font-black text-slate-800">
-                                    {item.day} {item.formattedTime}
-                                  </td>
-                                  <td className="p-2 font-bold text-slate-900">{item.item.room}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </div>
-                      </div>
-
-                      {/* Official Signatures Section */}
-                      <div className="grid grid-cols-2 gap-8 pt-4 border-t-2 border-slate-900 text-[11px]">
-                        <div>
-                          <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px]">Faculty Member:</span>
-                          <div className="mt-8 font-heading font-black text-[13px] text-slate-900 uppercase">
-                            {currentProfessor.name}
-                          </div>
-                          <span className="text-slate-600 font-bold">{currentProfessor.title}</span>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-slate-500 font-bold uppercase tracking-wider block text-[10px]">Approved by:</span>
-                          <div className="mt-8 font-heading font-black text-[13px] text-slate-900 uppercase">
-                            Dr. Karren V. De Lara
-                          </div>
-                          <span className="text-slate-600 font-bold">CS Program Chair</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
+              {/* Action Toolbar */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#0f2854] to-[#0284c7] text-white font-heading font-bold text-[13px] shadow-sm hover:shadow-md transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                  </svg>
+                  <span>Print / Save PDF</span>
+                </button>
               </div>
             </div>
-          )}
 
-          {/* 9. Panel Footer */}
-          <div className="bg-[#f0f6fe] border-t border-blue-100/90 min-h-[58px] px-6 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
-            <span className="text-[12px] md:text-[13px] font-medium text-blue-900/75">
-              Click on any class block to view complete course, time, room, and faculty details.
-            </span>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-blue-800/60">
-              OFFICIAL CS TIMETABLE
-            </span>
-          </div>
-        </section>
+            {/* Filter and Search Bar (Hidden when printed) */}
+            <div className="no-print bg-white/95 backdrop-blur-sm border border-blue-100 rounded-[20px] p-4 sm:p-5 mb-6 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3.5">
+              {/* Search */}
+              <div className="relative w-full sm:w-80">
+                <svg className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search faculty, day, or time..."
+                  value={consultationSearch}
+                  onChange={(e) => setConsultationSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-blue-200/80 rounded-xl text-[13px] text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#0284c7] focus:bg-white transition-all"
+                />
+              </div>
+
+              {/* Day filter chips */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto py-1">
+                {['ALL', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => setConsultationDayFilter(day)}
+                    className={`px-3 py-1.5 rounded-lg text-[12px] font-heading font-extrabold transition-all cursor-pointer shrink-0 ${
+                      consultationDayFilter === day
+                        ? 'bg-[#0f2854] text-white shadow-2xs'
+                        : 'bg-blue-50 text-blue-900 hover:bg-blue-100/80 border border-blue-200/60'
+                    }`}
+                  >
+                    {day === 'ALL' ? 'All Days' : day}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Document Container matching TIP-ACAD-016 */}
+            <div className="print-area bg-white border-2 border-slate-800 rounded-[22px] p-4 sm:p-8 md:p-10 shadow-lg print:border-none print:shadow-none print:p-0 overflow-hidden">
+              {/* Top Document Header Form Code */}
+              <div className="flex justify-end mb-4">
+                <div className="text-right font-sans text-[11px] sm:text-[12px] tracking-wider text-slate-700 font-bold">
+                  <div className="tracking-[0.15em]">TIP · ACAD · 016</div>
+                  <div className="text-[10px] sm:text-[11px] text-slate-500 font-semibold italic mt-0.5">
+                    Revision Status / Date: 0/2025 May 20
+                  </div>
+                </div>
+              </div>
+
+              {/* Institution Title & Details */}
+              <div className="text-center mb-6 sm:mb-8 border-b-2 border-slate-800 pb-5 sm:pb-6">
+                <h2 className="font-sans font-black tracking-[0.18em] sm:tracking-[0.22em] text-[15px] sm:text-[20px] md:text-[22px] text-slate-900 uppercase">
+                  TECHNOLOGICAL INSTITUTE OF THE PHILIPPINES
+                </h2>
+                <h3 className="font-heading font-extrabold text-[14px] sm:text-[17px] tracking-wide text-slate-800 uppercase mt-2 underline decoration-1 underline-offset-4">
+                  FACULTY CONSULTATION HOURS
+                </h3>
+                <h4 className="font-heading font-black text-[13px] sm:text-[16px] text-[#0f2854] tracking-wider uppercase mt-1">
+                  COMPUTER SCIENCE DEPARTMENT
+                </h4>
+                <p className="text-[11.5px] sm:text-[13px] font-bold text-slate-600 mt-1">
+                  1st Semester, SY 2026-2027
+                </p>
+              </div>
+
+              {/* Consultation Hours Table */}
+              <div className="border-2 border-slate-900 overflow-x-auto rounded-lg">
+                <table className="w-full border-collapse text-left min-w-[580px]">
+                  <thead>
+                    <tr className="border-b-2 border-slate-900 bg-slate-100">
+                      <th
+                        rowSpan={2}
+                        className="border-r-2 border-slate-900 p-3 sm:p-4 text-[12px] sm:text-[14px] font-heading font-black text-slate-900 w-[35%]"
+                      >
+                        Faculty Member
+                      </th>
+                      <th
+                        colSpan={2}
+                        className="border-r-2 border-slate-900 p-2 sm:p-3 text-[12px] sm:text-[14px] font-heading font-black text-slate-900 text-center border-b-2 border-slate-900"
+                      >
+                        Consultation Hours
+                      </th>
+                      <th
+                        rowSpan={2}
+                        className="p-3 sm:p-4 text-[12px] sm:text-[14px] font-heading font-black text-slate-900 text-center w-[30%]"
+                      >
+                        Venue
+                      </th>
+                    </tr>
+                    <tr className="border-b-2 border-slate-900 bg-slate-50">
+                      <th className="border-r-2 border-slate-900 p-2 text-center text-[11px] sm:text-[13px] font-heading font-bold text-slate-800 w-[20%]">
+                        Time
+                      </th>
+                      <th className="border-r-2 border-slate-900 p-2 text-center text-[11px] sm:text-[13px] font-heading font-bold text-slate-800 w-[15%]">
+                        Day
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredConsultations.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="p-8 text-center text-slate-400 text-[13px] italic font-medium">
+                          No faculty consultation hours found matching your search.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredConsultations.map((faculty, fIdx) => {
+                        const slots = faculty.slots;
+                        return slots.map((slot, sIdx) => {
+                          const isFirstSlot = sIdx === 0;
+                          return (
+                            <tr
+                              key={`${fIdx}-${sIdx}`}
+                              className={`border-b border-slate-300 ${
+                                fIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'
+                              } hover:bg-blue-50/40 transition-colors`}
+                            >
+                              {isFirstSlot && (
+                                <td
+                                  rowSpan={slots.length}
+                                  className="border-r-2 border-slate-900 p-3 sm:p-4 align-middle font-heading font-extrabold text-[12px] sm:text-[14px] text-slate-900"
+                                >
+                                  {faculty.name}
+                                </td>
+                              )}
+                              <td className="border-r-2 border-slate-900 p-2.5 sm:p-3 text-center font-bold text-[12px] sm:text-[13px] text-slate-800">
+                                {slot.time}
+                              </td>
+                              <td className="border-r-2 border-slate-900 p-2.5 sm:p-3 text-center font-bold text-[12px] sm:text-[13px] text-slate-800">
+                                {slot.day}
+                              </td>
+                              {isFirstSlot && (
+                                <td
+                                  rowSpan={slots.length}
+                                  className="p-3 sm:p-4 align-middle text-center font-bold text-[11px] sm:text-[13px] text-slate-800 leading-snug"
+                                >
+                                  <div className="font-heading font-black text-blue-950">Q-5212</div>
+                                  <div className="text-[10px] sm:text-[11px] text-slate-600 uppercase mt-0.5 tracking-wider font-extrabold">
+                                    FACULTY CONSULTATION ROOM
+                                  </div>
+                                </td>
+                              )}
+                            </tr>
+                          );
+                        });
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Signatures Section matching official PDF */}
+              <div className="mt-10 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 gap-8 sm:gap-16 pt-6 border-t-2 border-slate-900">
+                <div>
+                  <span className="text-[12px] sm:text-[13px] font-sans font-bold text-slate-700 block mb-6 sm:mb-12">
+                    Recommending Approval By:
+                  </span>
+                  <div className="border-b border-slate-900 pb-1 max-w-[280px]">
+                    <div className="font-sans font-black text-[13px] sm:text-[15px] text-slate-950 uppercase tracking-wide">
+                      DR. KARREN V. DE LARA
+                    </div>
+                  </div>
+                  <div className="text-[11px] sm:text-[12px] text-slate-700 font-bold mt-1">
+                    Program Chair/Department Head / Dean
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-semibold mt-4">
+                    Date: <span className="inline-block border-b border-slate-400 w-32 ml-1" />
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[12px] sm:text-[13px] font-sans font-bold text-slate-700 block mb-6 sm:mb-12">
+                    Approved By:
+                  </span>
+                  <div className="border-b border-slate-900 pb-1 max-w-[280px]">
+                    <div className="font-sans font-black text-[13px] sm:text-[15px] text-slate-950 uppercase tracking-wide">
+                      DR. FELIZARDO C. REYES JR.
+                    </div>
+                  </div>
+                  <div className="text-[11px] sm:text-[12px] text-slate-700 font-bold mt-1">
+                    AVPAA
+                  </div>
+                  <div className="text-[11px] text-slate-500 font-semibold mt-4">
+                    Date: <span className="inline-block border-b border-slate-400 w-32 ml-1" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Interactive Class Details Modal */}
@@ -2696,11 +2823,11 @@ export default function App() {
           role="dialog"
           aria-modal="true"
           aria-labelledby="modal-class-title"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/45 backdrop-blur-xs animate-fadeIn"
           onClick={() => setSelectedClassModal(null)}
         >
           <div
-            className="bg-white rounded-[22px] border border-blue-100 shadow-2xl max-w-lg w-full p-6 relative z-10 overflow-hidden animate-scaleUp text-[#0c1f38]"
+            className="bg-white rounded-[22px] border border-blue-100 shadow-2xl max-w-lg w-full p-5 sm:p-6 relative z-10 overflow-hidden animate-scaleUp text-[#0c1f38]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Top decorative gradient bar */}
@@ -2718,7 +2845,7 @@ export default function App() {
             </button>
 
             {/* Modal Header */}
-            <div className="flex items-center gap-2 mb-2 mt-1">
+            <div className="flex items-center gap-2 mb-2 mt-1 flex-wrap pr-8">
               <span className="px-2.5 py-1 rounded-md font-heading font-extrabold text-[13px] bg-blue-100 text-blue-800">
                 {selectedClassModal.item.courseCode}
               </span>
@@ -2728,13 +2855,13 @@ export default function App() {
               <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] uppercase tracking-wider border ${selectedClassModal.typeInfo.badgeClass}`}>
                 {selectedClassModal.typeInfo.label}
               </span>
-              <span className="ml-auto text-[11px] font-bold text-[#0284c7] uppercase tracking-wider mr-7">
+              <span className="ml-auto text-[11px] font-extrabold text-[#0284c7] uppercase tracking-wider">
                 {selectedClassModal.day}
               </span>
             </div>
 
             {/* Subject Title */}
-            <h3 id="modal-class-title" className="font-heading font-extrabold text-[20px] sm:text-[22px] text-[#0c1f38] leading-snug mb-4">
+            <h3 id="modal-class-title" className="font-heading font-extrabold text-[18px] sm:text-[22px] text-[#0c1f38] leading-snug mb-4">
               {selectedClassModal.item.subject}
             </h3>
 
@@ -2775,7 +2902,7 @@ export default function App() {
             <div className="flex justify-end">
               <button
                 onClick={() => setSelectedClassModal(null)}
-                className="px-5 py-2 rounded-xl bg-gradient-to-r from-[#0f2854] to-[#0284c7] text-white font-heading font-bold text-[13px] shadow-sm hover:shadow-md transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0f2854] to-[#0284c7] text-white font-heading font-bold text-[13px] shadow-sm hover:shadow-md transition-all cursor-pointer"
               >
                 Close Details
               </button>
@@ -2785,8 +2912,8 @@ export default function App() {
       )}
 
       {/* 10. Site Footer */}
-      <footer className="w-full border-t border-blue-200/70 bg-white/60 backdrop-blur-xs min-h-[90px] md:min-h-[110px] flex items-center">
-        <div className="max-w-[1600px] w-full mx-auto px-[14px] md:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="w-full border-t border-blue-200/70 bg-white/60 backdrop-blur-xs min-h-[90px] md:min-h-[105px] flex items-center">
+        <div className="max-w-[1600px] w-full mx-auto px-4 sm:px-5 md:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div
               className="w-8 h-8 rounded-[8px] bg-gradient-to-br from-[#0f2854] to-[#1e58b8] shadow-xs flex items-center justify-center -rotate-3 select-none shrink-0"
