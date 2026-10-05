@@ -1,11 +1,16 @@
 import React, { useState, useMemo } from 'react';
+import photoDeLara from './assets/professors/dr-karren-delara.jpg';
+import photoBarcelos from './assets/professors/prof-elsa-barcelos.png';
+import photoCapule from './assets/professors/prof-janice-capule.png';
+import photoGarcia from './assets/professors/prof-jess-garcia.png';
+import photoGregorio from './assets/professors/prof-monaliza-gregorio.png';
 
 // ================= EDIT PROFESSOR DATA ONLY BELOW =================
 export const professors: Professor[] = [
   {
     name: 'Dr. Karren V. De Lara',
     title: 'CS Program Chair',
-    photo: '/professors/dr-karren-delara.jpg',
+    photo: photoDeLara,
     schedule: [
       // Monday
       {
@@ -143,7 +148,7 @@ export const professors: Professor[] = [
   {
     name: 'Prof. Elsa I. Barcelos',
     title: 'CS Faculty',
-    photo: '/professors/prof-elsa-barcelos.png',
+    photo: photoBarcelos,
     schedule: [
       // Monday
       {
@@ -353,7 +358,7 @@ export const professors: Professor[] = [
   {
     name: 'Prof. Janice A. Capule',
     title: 'CS Faculty',
-    photo: '/professors/prof-janice-capule.png',
+    photo: photoCapule,
     schedule: [
       // Monday
       {
@@ -591,7 +596,7 @@ export const professors: Professor[] = [
   {
     name: 'Prof. Jess N. Garcia',
     title: 'CS Faculty',
-    photo: '/professors/prof-jess-garcia.png',
+    photo: photoGarcia,
     schedule: [
       // Monday
       {
@@ -856,7 +861,7 @@ export const professors: Professor[] = [
   {
     name: 'Prof. Monaliza C. Gregorio',
     title: 'CS Faculty',
-    photo: '/professors/prof-monaliza-gregorio.png',
+    photo: photoGregorio,
     schedule: [
       // Monday
       {
