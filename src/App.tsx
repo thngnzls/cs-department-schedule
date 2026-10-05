@@ -1503,6 +1503,33 @@ function calculateDurationHours(start: string, end: string): number {
   return (e - s) / 60;
 }
 
+function extractCleanRoom(rawRoom: string, day?: string): string {
+  if (!rawRoom) {
+    if (day && day.toUpperCase().startsWith('MON')) return 'Asynchronous';
+    return '—';
+  }
+
+  // Extract room codes like Q-5310A, Q-5411D, Q-6212, Q-5215, Q-5203C, Q-5313, etc.
+  const qMatch = rawRoom.match(/Q-[0-9A-Za-z]+/i);
+  if (qMatch) {
+    return qMatch[0].toUpperCase();
+  }
+
+  // Generic 3 or 4-digit room code
+  const roomMatch = rawRoom.match(/\b([A-Za-z]?\d{3,4}[A-Za-z]?)\b/);
+  if (roomMatch) {
+    return roomMatch[1];
+  }
+
+  // If no room is indicated (e.g. Lecture, Online, Lab without Q-###)
+  const lower = rawRoom.toLowerCase();
+  if (lower.includes('online') || lower.includes('async') || lower.includes('lecture') || lower.includes('lab') || lower.trim() === '') {
+    return 'Asynchronous';
+  }
+
+  return rawRoom.trim();
+}
+
 interface ConsultationSlot {
   time: string;
   day: string;
@@ -2480,36 +2507,30 @@ export default function App() {
 
                         {/* Consultation-Style Academic Table */}
                         <div className="border-2 border-slate-900 bg-white rounded-xl overflow-x-auto shadow-xs">
-                          <table className="w-full border-collapse text-left min-w-[780px]">
+                          <table className="w-full border-collapse text-left min-w-[720px]">
                             <thead>
                               <tr className="border-b-2 border-slate-900 bg-slate-100">
                                 <th
                                   scope="col"
-                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[15%]"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[18%]"
                                 >
                                   Day
                                 </th>
                                 <th
                                   scope="col"
-                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[18%]"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[22%]"
                                 >
                                   Time
                                 </th>
                                 <th
                                   scope="col"
-                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[12%]"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider w-[15%]"
                                 >
                                   Course Code
                                 </th>
                                 <th
                                   scope="col"
-                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider"
-                                >
-                                  Subject Title / Description
-                                </th>
-                                <th
-                                  scope="col"
-                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider text-center w-[10%]"
+                                  className="border-r-2 border-slate-900 p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider text-center w-[13%]"
                                 >
                                   Section
                                 </th>
@@ -2521,7 +2542,7 @@ export default function App() {
                                 </th>
                                 <th
                                   scope="col"
-                                  className="p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider text-center w-[11%]"
+                                  className="p-3 sm:p-3.5 text-[12px] sm:text-[13px] font-heading font-black text-slate-900 uppercase tracking-wider text-center w-[14%]"
                                 >
                                   Type
                                 </th>
@@ -2531,7 +2552,7 @@ export default function App() {
                             <tbody>
                               {groupedByDay.length === 0 ? (
                                 <tr>
-                                  <td colSpan={7} className="p-10 text-center bg-slate-50 text-slate-500 font-medium italic">
+                                  <td colSpan={6} className="p-10 text-center bg-slate-50 text-slate-500 font-medium italic">
                                     No classes scheduled for {selectedDayFilter === 'ALL' ? 'this professor' : (DAY_FULL_NAMES[selectedDayFilter as Weekday] || selectedDayFilter)}.
                                     {selectedDayFilter !== 'ALL' && (
                                       <button
@@ -2548,6 +2569,7 @@ export default function App() {
                                 groupedByDay.map((group) =>
                                   group.items.map((entry, iIdx) => {
                                     const isLastInGroup = iIdx === group.items.length - 1;
+                                    const cleanRoom = extractCleanRoom(entry.item.room, group.day);
 
                                     return (
                                       <tr
@@ -2608,26 +2630,19 @@ export default function App() {
                                           {entry.item.courseCode}
                                         </td>
 
-                                        {/* 4. SUBJECT TITLE / DESCRIPTION */}
-                                        <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-heading font-bold text-[13px] sm:text-[14px] text-slate-800 leading-snug">
-                                          {entry.item.subject}
-                                        </td>
-
-                                        {/* 5. SECTION */}
+                                        {/* 4. SECTION */}
                                         <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-sans font-black text-[12px] sm:text-[13px] text-slate-900 text-center whitespace-nowrap">
                                           {entry.item.section}
                                         </td>
 
-                                        {/* 6. ROOM / VENUE */}
-                                        <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-sans font-bold text-[12px] sm:text-[13px] text-slate-800 whitespace-nowrap">
-                                          {entry.item.room}
+                                        {/* 5. ROOM / VENUE */}
+                                        <td className="border-r-2 border-slate-900 p-3 sm:p-3.5 font-sans font-bold text-[12.5px] sm:text-[13.5px] text-slate-800 whitespace-nowrap">
+                                          {cleanRoom}
                                         </td>
 
-                                        {/* 7. TYPE */}
-                                        <td className="p-3 sm:p-3.5 text-center whitespace-nowrap">
-                                          <span className={`inline-block text-[10px] sm:text-[11px] px-2.5 py-0.5 rounded font-bold uppercase tracking-wider border ${entry.typeInfo.badgeClass}`}>
-                                            {entry.typeInfo.label}
-                                          </span>
+                                        {/* 6. TYPE (Plain text only, no badge styling) */}
+                                        <td className="p-3 sm:p-3.5 text-center font-sans font-bold text-[12px] sm:text-[13px] text-slate-800 whitespace-nowrap">
+                                          {entry.typeInfo.label}
                                         </td>
                                       </tr>
                                     );
@@ -2644,7 +2659,7 @@ export default function App() {
                                 <td colSpan={2} className="p-3 sm:p-3.5 border-r-2 border-slate-900">
                                   Weekly Teaching Hours: <span className="font-black text-[#0f2854]">{tabularStats.totalHours.toFixed(1)} Hours</span>
                                 </td>
-                                <td colSpan={3} className="p-3 sm:p-3.5 text-right text-slate-500 font-medium text-[11.5px]">
+                                <td colSpan={2} className="p-3 sm:p-3.5 text-right text-slate-500 font-medium text-[11.5px]">
                                   Click on any row to view complete schedule details
                                 </td>
                               </tr>
