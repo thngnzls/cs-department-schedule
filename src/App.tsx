@@ -1504,9 +1504,10 @@ function calculateDurationHours(start: string, end: string): number {
 }
 
 function extractCleanRoom(rawRoom: string, day?: string): string {
+  const isMonday = day ? day.trim().toUpperCase().startsWith('MON') : false;
+
   if (!rawRoom) {
-    if (day && day.toUpperCase().startsWith('MON')) return 'Asynchronous';
-    return '—';
+    return isMonday ? 'Asynchronous' : '';
   }
 
   // Extract room codes like Q-5310A, Q-5411D, Q-6212, Q-5215, Q-5203C, Q-5313, etc.
@@ -1521,13 +1522,8 @@ function extractCleanRoom(rawRoom: string, day?: string): string {
     return roomMatch[1];
   }
 
-  // If no room is indicated (e.g. Lecture, Online, Lab without Q-###)
-  const lower = rawRoom.toLowerCase();
-  if (lower.includes('online') || lower.includes('async') || lower.includes('lecture') || lower.includes('lab') || lower.trim() === '') {
-    return 'Asynchronous';
-  }
-
-  return rawRoom.trim();
+  // If no room code is indicated (e.g. 'Lecture', 'Online', 'Laboratory', etc.)
+  return isMonday ? 'Asynchronous' : '';
 }
 
 interface ConsultationSlot {
