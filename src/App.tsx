@@ -1469,6 +1469,40 @@ function getDayTimelineBlocks(
   return blocks;
 }
 
+const DAY_ORDER: Record<Weekday, number> = {
+  MON: 1,
+  TUE: 2,
+  WED: 3,
+  THU: 4,
+  FRI: 5,
+  SAT: 6,
+};
+
+const DAY_FULL_NAMES: Record<Weekday, string> = {
+  MON: 'Monday',
+  TUE: 'Tuesday',
+  WED: 'Wednesday',
+  THU: 'Thursday',
+  FRI: 'Friday',
+  SAT: 'Saturday',
+};
+
+const DAY_COLOR_PILLS: Record<Weekday, { bg: string; text: string; border: string }> = {
+  MON: { bg: 'bg-blue-100 text-blue-900 border-blue-300', text: 'text-blue-900', border: 'border-blue-300' },
+  TUE: { bg: 'bg-cyan-100 text-cyan-900 border-cyan-300', text: 'text-cyan-900', border: 'border-cyan-300' },
+  WED: { bg: 'bg-indigo-100 text-indigo-900 border-indigo-300', text: 'text-indigo-900', border: 'border-indigo-300' },
+  THU: { bg: 'bg-sky-100 text-sky-900 border-sky-300', text: 'text-sky-900', border: 'border-sky-300' },
+  FRI: { bg: 'bg-teal-100 text-teal-900 border-teal-300', text: 'text-teal-900', border: 'border-teal-300' },
+  SAT: { bg: 'bg-slate-100 text-slate-900 border-slate-300', text: 'text-slate-900', border: 'border-slate-300' },
+};
+
+function calculateDurationHours(start: string, end: string): number {
+  const s = timeToMinutes(start);
+  const e = timeToMinutes(end);
+  if (s === null || e === null || e <= s) return 0;
+  return (e - s) / 60;
+}
+
 interface ConsultationSlot {
   time: string;
   day: string;
@@ -1530,7 +1564,7 @@ const CS_CONSULTATION_HOURS: FacultyConsultation[] = [
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'schedule' | 'consultation'>('schedule');
-  const [scheduleFormat, setScheduleFormat] = useState<'grid' | 'blocks' | 'agenda'>('grid');
+  const [scheduleFormat, setScheduleFormat] = useState<'grid' | 'table' | 'blocks' | 'agenda'>('grid');
   const [consultationSearch, setConsultationSearch] = useState<string>('');
   const [consultationDayFilter, setConsultationDayFilter] = useState<string>('ALL');
   const [selectedProfIndex, setSelectedProfIndex] = useState<number>(0);
@@ -1701,6 +1735,64 @@ export default function App() {
     };
   }, [currentProfessor]);
 
+  // Tabular schedule items for current professor, sorted chronologically by weekday, then time (No vacant space waste)
+  const tabularScheduleItems = useMemo(() => {
+    if (!currentProfessor || !currentProfessor.schedule) return [];
+
+    return [...currentProfessor.schedule]
+      .map((item, originalIndex) => {
+        const day = (item.day || '').trim().toUpperCase() as Weekday;
+        const sMin = timeToMinutes(item.start) || 0;
+        const eMin = timeToMinutes(item.end) || 0;
+        const durationHours = calculateDurationHours(item.start, item.end);
+        const typeInfo = getClassTypeInfo(item);
+        const formattedTime = formatTimeRange(item.start, item.end);
+        const colorTheme = COLOR_THEMES[originalIndex % COLOR_THEMES.length];
+
+        return {
+          item,
+          originalIndex,
+          day,
+          sMin,
+          eMin,
+          durationHours,
+          typeInfo,
+          formattedTime,
+          colorTheme,
+        };
+      })
+      .filter((entry) => WEEKDAYS.includes(entry.day))
+      .sort((a, b) => {
+        const orderA = DAY_ORDER[a.day] || 99;
+        const orderB = DAY_ORDER[b.day] || 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return a.sMin - b.sMin;
+      });
+  }, [currentProfessor]);
+
+  const filteredTabularItems = useMemo(() => {
+    if (selectedDayFilter === 'ALL') return tabularScheduleItems;
+    return tabularScheduleItems.filter((entry) => entry.day === selectedDayFilter);
+  }, [tabularScheduleItems, selectedDayFilter]);
+
+  const tabularStats = useMemo(() => {
+    const totalClasses = tabularScheduleItems.length;
+    const totalHours = tabularScheduleItems.reduce((acc, curr) => acc + curr.durationHours, 0);
+    const distinctCourses = new Set(tabularScheduleItems.map((i) => i.item.courseCode)).size;
+    const activeDays = new Set(tabularScheduleItems.map((i) => i.day)).size;
+    const labClasses = tabularScheduleItems.filter((i) => i.typeInfo.isLab).length;
+    const lecClasses = totalClasses - labClasses;
+
+    return {
+      totalClasses,
+      totalHours,
+      distinctCourses,
+      activeDays,
+      labClasses,
+      lecClasses,
+    };
+  }, [tabularScheduleItems]);
+
   const filteredConsultations = useMemo(() => {
     return CS_CONSULTATION_HOURS.filter((faculty) => {
       const q = consultationSearch.trim().toLowerCase();
@@ -1776,11 +1868,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('schedule')}
-                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg text-[12.5px] sm:text-[13.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  activeTab === 'schedule'
+                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg text-[12.5px] sm:text-[13.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'schedule'
                     ? 'bg-[#0f2854] text-white shadow-xs'
                     : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/60'
-                }`}
+                  }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <rect x="3" y="4" width="18" height="18" rx="2" ry="2" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -1794,11 +1885,10 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setActiveTab('consultation')}
-                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg text-[12.5px] sm:text-[13.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  activeTab === 'consultation'
+                className={`flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg text-[12.5px] sm:text-[13.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'consultation'
                     ? 'bg-[#0f2854] text-white shadow-xs'
                     : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/60'
-                }`}
+                  }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -1937,18 +2027,16 @@ export default function App() {
                       style={{
                         backgroundColor: isActive ? '#ffffff' : bgColor,
                       }}
-                      className={`folder-tab relative flex items-center gap-2.5 px-3.5 sm:px-4 md:px-5 rounded-t-[14px] rounded-b-none transition-all duration-200 cursor-pointer select-none text-left shrink-0 min-w-[175px] sm:min-w-[195px] md:min-w-[215px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-inset ${
-                        isActive
+                      className={`folder-tab relative flex items-center gap-2.5 px-3.5 sm:px-4 md:px-5 rounded-t-[14px] rounded-b-none transition-all duration-200 cursor-pointer select-none text-left shrink-0 min-w-[175px] sm:min-w-[195px] md:min-w-[215px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-inset ${isActive
                           ? 'active-tab h-[68px] text-[#0c1f38] shadow-[0_-6px_20px_rgba(15,40,84,0.09)] z-30 font-bold border-t border-l border-blue-100/90'
                           : 'h-[56px] hover:h-[62px] focus-visible:h-[62px] text-white/95 opacity-90 hover:opacity-100 shadow-xs z-10 font-medium'
-                      }`}
+                        }`}
                     >
                       <span
-                        className={`font-heading text-[13px] md:text-[14px] font-extrabold px-1.5 py-0.5 rounded-md ${
-                          isActive
+                        className={`font-heading text-[13px] md:text-[14px] font-extrabold px-1.5 py-0.5 rounded-md ${isActive
                             ? 'bg-blue-100/80 text-[#0284c7]'
                             : 'bg-white/20 text-white'
-                        }`}
+                          }`}
                       >
                         {twoDigitNum}
                       </span>
@@ -2037,11 +2125,10 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => setScheduleFormat('grid')}
-                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                              scheduleFormat === 'grid'
+                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${scheduleFormat === 'grid'
                                 ? 'bg-[#0f2854] text-white shadow-xs'
                                 : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
-                            }`}
+                              }`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
@@ -2050,29 +2137,24 @@ export default function App() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => setScheduleFormat('blocks')}
-                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                              scheduleFormat === 'blocks'
+                            onClick={() => setScheduleFormat('table')}
+                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${scheduleFormat === 'table' || scheduleFormat === 'blocks'
                                 ? 'bg-[#0f2854] text-white shadow-xs'
                                 : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
-                            }`}
+                              }`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <rect x="3" y="3" width="7" height="8" rx="2" strokeWidth="2" />
-                              <rect x="14" y="3" width="7" height="12" rx="2" strokeWidth="2" />
-                              <rect x="3" y="14" width="7" height="7" rx="2" strokeWidth="2" />
-                              <rect x="14" y="18" width="7" height="3" rx="1.5" strokeWidth="2" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                             </svg>
-                            <span>Block Format</span>
+                            <span>Table Format</span>
                           </button>
                           <button
                             type="button"
                             onClick={() => setScheduleFormat('agenda')}
-                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                              scheduleFormat === 'agenda'
+                            className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${scheduleFormat === 'agenda'
                                 ? 'bg-[#0f2854] text-white shadow-xs'
                                 : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
-                            }`}
+                              }`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -2102,10 +2184,10 @@ export default function App() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
                       <div>
                         <span className="text-[10px] md:text-[11px] font-extrabold uppercase tracking-widest text-[#0284c7]">
-                          {scheduleFormat === 'grid' ? 'WEEKLY TIME TABLE' : scheduleFormat === 'blocks' ? 'BLOCK SCHEDULE' : 'DAILY AGENDA TIMELINE'}
+                          {scheduleFormat === 'grid' ? 'WEEKLY TIME TABLE' : (scheduleFormat === 'table' || scheduleFormat === 'blocks') ? 'TABULAR SCHEDULE' : 'DAILY AGENDA TIMELINE'}
                         </span>
                         <h4 className="font-heading font-black text-[17px] sm:text-[20px] text-[#0c1f38] leading-tight">
-                          {scheduleFormat === 'grid' ? 'Monday to Saturday (6:30 AM – 8:30 PM)' : scheduleFormat === 'blocks' ? 'Proportional Day Blocks' : 'Day-by-Day Schedule'}
+                          {scheduleFormat === 'grid' ? 'Monday to Saturday (6:30 AM – 8:30 PM)' : (scheduleFormat === 'table' || scheduleFormat === 'blocks') ? 'Class Schedule Table (No Vacant Gaps)' : 'Day-by-Day Schedule'}
                         </h4>
                       </div>
 
@@ -2114,11 +2196,10 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => setSelectedDayFilter('ALL')}
-                          className={`px-2.5 py-1.5 rounded-md text-[11px] font-heading font-extrabold transition-colors cursor-pointer shrink-0 ${
-                            selectedDayFilter === 'ALL'
+                          className={`px-2.5 py-1.5 rounded-md text-[11px] font-heading font-extrabold transition-colors cursor-pointer shrink-0 ${selectedDayFilter === 'ALL'
                               ? 'bg-[#0f2854] text-white shadow-2xs'
                               : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
-                          }`}
+                            }`}
                         >
                           ALL DAYS
                         </button>
@@ -2131,18 +2212,16 @@ export default function App() {
                               key={day}
                               type="button"
                               onClick={() => setSelectedDayFilter(day)}
-                              className={`px-2.5 py-1.5 rounded-md text-[11px] font-heading font-extrabold transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${
-                                isFilterActive
+                              className={`px-2.5 py-1.5 rounded-md text-[11px] font-heading font-extrabold transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${isFilterActive
                                   ? 'bg-[#0284c7] text-white shadow-2xs'
                                   : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
-                              }`}
+                                }`}
                             >
                               <span>{day}</span>
                               {countForDay > 0 && (
                                 <span
-                                  className={`text-[9px] px-1 rounded-full ${
-                                    isFilterActive ? 'bg-white/25 text-white' : 'bg-blue-200/80 text-blue-950'
-                                  }`}
+                                  className={`text-[9px] px-1 rounded-full ${isFilterActive ? 'bg-white/25 text-white' : 'bg-blue-200/80 text-blue-950'
+                                    }`}
                                 >
                                   {countForDay}
                                 </span>
@@ -2181,9 +2260,8 @@ export default function App() {
                               {WEEKDAYS.map((day, idx) => (
                                 <div
                                   key={day}
-                                  className={`text-center font-heading text-[13.5px] sm:text-[15px] md:text-[16.5px] font-black tracking-wider uppercase h-full flex items-center justify-center ${
-                                    idx < WEEKDAYS.length - 1 ? 'border-r border-white/10' : ''
-                                  } ${selectedDayFilter !== 'ALL' && selectedDayFilter !== day ? 'opacity-40' : ''}`}
+                                  className={`text-center font-heading text-[13.5px] sm:text-[15px] md:text-[16.5px] font-black tracking-wider uppercase h-full flex items-center justify-center ${idx < WEEKDAYS.length - 1 ? 'border-r border-white/10' : ''
+                                    } ${selectedDayFilter !== 'ALL' && selectedDayFilter !== day ? 'opacity-40' : ''}`}
                                 >
                                   {day}
                                 </div>
@@ -2198,9 +2276,8 @@ export default function App() {
                                   <div
                                     key={rIdx}
                                     style={{ height: `${SLOT_HEIGHT}px` }}
-                                    className={`flex items-center justify-center text-[11px] sm:text-[12.5px] md:text-[13.5px] font-bold text-slate-700 border-b border-blue-100/80 px-0.5 sm:px-1 ${
-                                      rIdx % 2 === 0 ? 'bg-slate-50/90' : 'bg-white/90'
-                                    }`}
+                                    className={`flex items-center justify-center text-[11px] sm:text-[12.5px] md:text-[13.5px] font-bold text-slate-700 border-b border-blue-100/80 px-0.5 sm:px-1 ${rIdx % 2 === 0 ? 'bg-slate-50/90' : 'bg-white/90'
+                                      }`}
                                   >
                                     {timeLabel}
                                   </div>
@@ -2214,17 +2291,15 @@ export default function App() {
                                 return (
                                   <div
                                     key={day}
-                                    className={`relative flex flex-col ${
-                                      colIdx < WEEKDAYS.length - 1 ? 'border-r border-blue-100' : ''
-                                    } ${isDimmed ? 'bg-slate-100/30' : ''}`}
+                                    className={`relative flex flex-col ${colIdx < WEEKDAYS.length - 1 ? 'border-r border-blue-100' : ''
+                                      } ${isDimmed ? 'bg-slate-100/30' : ''}`}
                                   >
                                     {Array.from({ length: totalSlots }).map((_, rIdx) => (
                                       <div
                                         key={rIdx}
                                         style={{ height: `${SLOT_HEIGHT}px` }}
-                                        className={`border-b border-blue-100/60 ${
-                                          rIdx % 2 === 0 ? 'bg-transparent' : 'bg-blue-50/20'
-                                        }`}
+                                        className={`border-b border-blue-100/60 ${rIdx % 2 === 0 ? 'bg-transparent' : 'bg-blue-50/20'
+                                          }`}
                                       />
                                     ))}
                                   </div>
@@ -2293,9 +2368,8 @@ export default function App() {
                                               width: `calc(${widthPercent}% - 4px)`,
                                               animationDelay: `${eIdx * 30}ms`,
                                             }}
-                                            className={`absolute pointer-events-auto rounded-[10px] ${
-                                              isShortSlot ? 'p-1 sm:p-1.5' : isOneHour ? 'p-1.5 sm:p-2.5' : 'p-2 sm:p-3'
-                                            } flex flex-col justify-between overflow-hidden transition-all duration-200 cursor-pointer hover:scale-[1.01] hover:z-30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none animate-event-card ${theme.cardClasses} ${theme.leftBorder}`}
+                                            className={`absolute pointer-events-auto rounded-[10px] ${isShortSlot ? 'p-1 sm:p-1.5' : isOneHour ? 'p-1.5 sm:p-2.5' : 'p-2 sm:p-3'
+                                              } flex flex-col justify-between overflow-hidden transition-all duration-200 cursor-pointer hover:scale-[1.01] hover:z-30 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none animate-event-card ${theme.cardClasses} ${theme.leftBorder}`}
                                           >
                                             {isShortSlot ? (
                                               <div className="flex flex-col justify-between h-full w-full overflow-hidden leading-none">
@@ -2334,9 +2408,8 @@ export default function App() {
                                                 {/* MIDDLE SECTION: Full Subject Name */}
                                                 <div className="my-0.5 overflow-hidden">
                                                   <h5
-                                                    className={`font-heading font-extrabold text-[12px] sm:text-[13px] md:text-[14px] leading-tight ${
-                                                      isLongSlot ? 'line-clamp-3' : 'line-clamp-2'
-                                                    } ${theme.textColor}`}
+                                                    className={`font-heading font-extrabold text-[12px] sm:text-[13px] md:text-[14px] leading-tight ${isLongSlot ? 'line-clamp-3' : 'line-clamp-2'
+                                                      } ${theme.textColor}`}
                                                   >
                                                     {eventData.item.subject}
                                                   </h5>
@@ -2365,120 +2438,257 @@ export default function App() {
                       </div>
                     )}
 
-                    {/* VIEW MODE 2: MINIMAL ROUNDED BLOCKS VIEW (Optimized for 1-Page Short Bond Paper Capture & High Legibility) */}
-                    {scheduleFormat === 'blocks' && (
-                      <div className="w-full bg-[#edf5fd] rounded-[24px] p-3 sm:p-5 md:p-6 border-2 border-blue-200 shadow-xs overflow-x-auto custom-timetable-scrollbar">
-                        <div className="min-w-[760px] max-w-[1400px] mx-auto">
-                          {/* 1. Day Pill Headers: M, T, W, T, F, S */}
-                          <div className="grid grid-cols-6 gap-2.5 sm:gap-3.5 mb-3.5">
-                            {WEEKDAYS.map((day) => (
-                              <div
-                                key={day}
-                                className={`bg-white rounded-[16px] sm:rounded-full py-2 sm:py-3 flex items-center justify-center shadow-[0_2px_8px_rgba(15,40,84,0.06)] border border-blue-200 transition-opacity ${
-                                  selectedDayFilter !== 'ALL' && selectedDayFilter !== day ? 'opacity-35' : ''
-                                }`}
-                              >
-                                <span className="font-heading font-black text-[22px] sm:text-[26px] md:text-[28px] text-slate-700 tracking-wide select-none">
-                                  {DAY_LETTERS[day]}
-                                </span>
-                              </div>
-                            ))}
+                    {/* VIEW MODE 2: CONCISE TABULAR FORMAT (Straight to the Point, Zero Vacant Space Wasted, High Legibility for Screenshots & 1-Page Short Bond Paper) */}
+                    {(scheduleFormat === 'table' || scheduleFormat === 'blocks') && (
+                      <div className="flex flex-col gap-4">
+                        {/* 1. High-Density Quick Metric Badges */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3.5">
+                          <div className="bg-white rounded-[16px] p-3 sm:p-3.5 border border-blue-200/90 shadow-2xs flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-200/80 text-blue-700 flex items-center justify-center shrink-0">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <rect x="3" y="4" width="18" height="18" rx="2" strokeWidth="2" />
+                                <line x1="16" y1="2" x2="16" y2="6" strokeWidth="2" />
+                                <line x1="8" y1="2" x2="8" y2="6" strokeWidth="2" />
+                                <line x1="3" y1="10" x2="21" y2="10" strokeWidth="2" />
+                              </svg>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Classes</span>
+                              <span className="font-heading font-black text-[17px] sm:text-[19px] text-[#0f2854] leading-tight">
+                                {tabularStats.totalClasses} Meetings
+                              </span>
+                            </div>
                           </div>
 
-                          {/* 2. 6 Daily Columns of Proportional Class Blocks & Neutral Grey Gaps */}
-                          <div className="grid grid-cols-6 gap-2.5 sm:gap-3.5 items-start">
-                            {WEEKDAYS.map((day) => {
-                              const isDimmed = selectedDayFilter !== 'ALL' && selectedDayFilter !== day;
-                              const blocks = getDayTimelineBlocks(
-                                currentProfessor.schedule,
-                                day,
-                                startBaseMin,
-                                endBaseMin
-                              );
+                          <div className="bg-white rounded-[16px] p-3 sm:p-3.5 border border-blue-200/90 shadow-2xs flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-cyan-50 border border-cyan-200/80 text-cyan-700 flex items-center justify-center shrink-0">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                                <polyline points="12 6 12 12 16 14" strokeWidth="2" strokeLinecap="round" />
+                              </svg>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Weekly Load</span>
+                              <span className="font-heading font-black text-[17px] sm:text-[19px] text-[#0f2854] leading-tight">
+                                {tabularStats.totalHours.toFixed(1)} Hours
+                              </span>
+                            </div>
+                          </div>
 
-                              return (
-                                <div
-                                  key={day}
-                                  className={`flex flex-col gap-2.5 sm:gap-3 transition-opacity ${
-                                    isDimmed ? 'opacity-30' : ''
-                                  }`}
-                                >
-                                  {blocks.map((block, bIdx) => {
-                                    if (block.isGap) {
-                                      const gapHeightPx = Math.max(26, block.spanSlots * 32);
-                                      return (
-                                        <div
-                                          key={bIdx}
-                                          style={{ minHeight: `${gapHeightPx}px`, height: `${gapHeightPx}px` }}
-                                          className="bg-[#cbd5e1] rounded-[16px] sm:rounded-[20px] w-full shrink-0 shadow-2xs transition-all opacity-85"
-                                          aria-label="Free period"
-                                        />
-                                      );
-                                    }
+                          <div className="bg-white rounded-[16px] p-3 sm:p-3.5 border border-blue-200/90 shadow-2xs flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-200/80 text-indigo-700 flex items-center justify-center shrink-0">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                              </svg>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Courses Taught</span>
+                              <span className="font-heading font-black text-[17px] sm:text-[19px] text-[#0f2854] leading-tight">
+                                {tabularStats.distinctCourses} Subjects
+                              </span>
+                            </div>
+                          </div>
 
-                                    const item = block.item!;
-                                    const typeInfo = block.typeInfo!;
-                                    const classHeightPx = Math.max(92, block.spanSlots * 68 + (block.spanSlots - 1) * 8);
+                          <div className="bg-white rounded-[16px] p-3 sm:p-3.5 border border-blue-200/90 shadow-2xs flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-200/80 text-teal-700 flex items-center justify-center shrink-0">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Teaching Days</span>
+                              <span className="font-heading font-black text-[17px] sm:text-[19px] text-[#0f2854] leading-tight">
+                                {tabularStats.activeDays} Days / Week
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Space-Efficient Tabular Schedule (Fits cleanly on 1-Page Short Bond Paper) */}
+                        <div className="w-full bg-white rounded-[22px] border-2 border-blue-200/90 shadow-xs overflow-hidden">
+                          <div className="overflow-x-auto custom-timetable-scrollbar">
+                            <table className="w-full text-left border-collapse min-w-[860px]">
+                              <thead>
+                                <tr className="bg-gradient-to-r from-[#0a1b38] to-[#0f2854] text-white border-b border-blue-300">
+                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
+                                    Day
+                                  </th>
+                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
+                                    Time Range
+                                  </th>
+                                  <th scope="col" className="py-3.5 px-3 text-[12px] font-heading font-black tracking-wider uppercase text-center">
+                                    Duration
+                                  </th>
+                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
+                                    Course Code
+                                  </th>
+                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
+                                    Subject Title & Description
+                                  </th>
+                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase text-center">
+                                    Section
+                                  </th>
+                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase">
+                                    Room / Venue
+                                  </th>
+                                  <th scope="col" className="py-3.5 px-4 text-[12px] font-heading font-black tracking-wider uppercase text-center">
+                                    Type
+                                  </th>
+                                </tr>
+                              </thead>
+
+                              {filteredTabularItems.length === 0 ? (
+                                <tbody>
+                                  <tr>
+                                    <td colSpan={8} className="py-14 text-center bg-slate-50/50">
+                                      <div className="flex flex-col items-center justify-center gap-2 max-w-sm mx-auto">
+                                        <div className="w-12 h-12 rounded-full bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center">
+                                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                          </svg>
+                                        </div>
+                                        <p className="font-heading font-bold text-[15px] text-[#0c1f38]">
+                                          No classes scheduled on {selectedDayFilter === 'ALL' ? 'this timetable' : (DAY_FULL_NAMES[selectedDayFilter as Weekday] || selectedDayFilter)}.
+                                        </p>
+                                        {selectedDayFilter !== 'ALL' && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setSelectedDayFilter('ALL')}
+                                            className="mt-2 px-4 py-2 rounded-lg bg-[#0f2854] text-white text-[12px] font-heading font-extrabold hover:bg-[#1e58b8] transition-colors cursor-pointer shadow-2xs"
+                                          >
+                                            View Entire Weekly Schedule
+                                          </button>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              ) : (
+                                <tbody className="divide-y divide-blue-100/90 text-slate-800">
+                                  {filteredTabularItems.map((entry, idx) => {
+                                    const dayPill = DAY_COLOR_PILLS[entry.day] || {
+                                      bg: 'bg-blue-100 text-blue-900 border-blue-300',
+                                      text: 'text-blue-900',
+                                      border: 'border-blue-300',
+                                    };
 
                                     return (
-                                      <div
-                                        key={bIdx}
+                                      <tr
+                                        key={`${entry.day}-${entry.item.courseCode}-${entry.originalIndex}-${idx}`}
                                         role="button"
                                         tabIndex={0}
                                         onClick={() => setSelectedClassModal({
-                                          item,
-                                          day,
-                                          formattedTime: formatBlockTime(item.start, item.end),
+                                          item: entry.item,
+                                          day: entry.day,
+                                          formattedTime: entry.formattedTime,
                                           profName: currentProfessor.name,
                                           profTitle: currentProfessor.title,
-                                          theme: COLOR_THEMES[bIdx % COLOR_THEMES.length],
-                                          typeInfo,
+                                          theme: entry.colorTheme,
+                                          typeInfo: entry.typeInfo,
                                         })}
                                         onKeyDown={(e) => {
                                           if (e.key === 'Enter' || e.key === ' ') {
                                             e.preventDefault();
                                             setSelectedClassModal({
-                                              item,
-                                              day,
-                                              formattedTime: formatBlockTime(item.start, item.end),
+                                              item: entry.item,
+                                              day: entry.day,
+                                              formattedTime: entry.formattedTime,
                                               profName: currentProfessor.name,
                                               profTitle: currentProfessor.title,
-                                              theme: COLOR_THEMES[bIdx % COLOR_THEMES.length],
-                                              typeInfo,
+                                              theme: entry.colorTheme,
+                                              typeInfo: entry.typeInfo,
                                             });
                                           }
                                         }}
-                                        style={{ minHeight: `${classHeightPx}px`, height: `${classHeightPx}px` }}
-                                        className="bg-gradient-to-b from-[#d8effe] to-[#c3e6fd] hover:from-[#c3e6fd] hover:to-[#b0ddfb] border-2 border-[#8ecef8] rounded-[18px] sm:rounded-[22px] p-2.5 sm:p-3 flex flex-col items-center justify-center text-center shadow-xs cursor-pointer hover:shadow-md hover:scale-[1.01] transition-all shrink-0 overflow-hidden select-none"
-                                        title={`${item.courseCode} - ${item.subject} (${item.start}-${item.end})`}
+                                        className="hover:bg-blue-50/70 transition-colors cursor-pointer group even:bg-slate-50/40"
+                                        title={`Click to view details for ${entry.item.courseCode} - ${entry.item.subject}`}
                                       >
-                                        {/* Line 1: Time Range in bold readable font */}
-                                        <span className="font-sans font-black text-[11px] sm:text-[12.5px] md:text-[13.5px] text-slate-800 uppercase tracking-tight leading-tight shrink-0">
-                                          {formatBlockTime(item.start, item.end)}
-                                        </span>
-
-                                        {/* Line 2: Large prominent Course Code */}
-                                        <span className="font-heading font-black text-[16px] sm:text-[19px] md:text-[21px] text-slate-950 leading-tight mt-1 shrink-0 tracking-tight">
-                                          {item.courseCode}
-                                        </span>
-
-                                        {/* Line 3: Section in high-contrast pill */}
-                                        <div className="mt-1 shrink-0">
-                                          <span className="font-sans font-black text-[11px] sm:text-[12px] md:text-[13px] text-blue-950 bg-white/85 px-2.5 py-0.5 rounded-md border border-blue-200/80 shadow-2xs inline-block">
-                                            {item.section.startsWith('SEC') ? item.section : `SEC ${item.section}`}
+                                        {/* 1. DAY */}
+                                        <td className="py-3.5 px-4 whitespace-nowrap">
+                                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[12px] font-heading font-black border uppercase tracking-wider ${dayPill.bg}`}>
+                                            <span>{entry.day}</span>
+                                            <span className="text-[10.5px] font-bold opacity-80 hidden sm:inline">· {DAY_FULL_NAMES[entry.day]}</span>
                                           </span>
-                                        </div>
+                                        </td>
 
-                                        {/* Line 4: Type | Room Venue in bold legible text */}
-                                        <span className="font-sans font-bold text-[10.5px] sm:text-[12px] md:text-[13px] text-slate-800 leading-tight mt-1 truncate max-w-full px-1 shrink-0">
-                                          {formatBlockVenue(typeInfo, item.room)}
-                                        </span>
-                                      </div>
+                                        {/* 2. TIME */}
+                                        <td className="py-3.5 px-4 whitespace-nowrap">
+                                          <div className="flex items-center gap-1.5 font-sans font-black text-[13px] sm:text-[14px] text-slate-900">
+                                            <svg className="w-4 h-4 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <circle cx="12" cy="12" r="10" strokeWidth="2" />
+                                              <polyline points="12 6 12 12 16 14" strokeWidth="2" strokeLinecap="round" />
+                                            </svg>
+                                            <span>{entry.formattedTime}</span>
+                                          </div>
+                                        </td>
+
+                                        {/* 3. DURATION */}
+                                        <td className="py-3.5 px-3 text-center whitespace-nowrap">
+                                          <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-extrabold border border-slate-200">
+                                            {entry.durationHours % 1 === 0 ? `${entry.durationHours} hr${entry.durationHours > 1 ? 's' : ''}` : `${entry.durationHours.toFixed(1)} hrs`}
+                                          </span>
+                                        </td>
+
+                                        {/* 4. COURSE CODE */}
+                                        <td className="py-3.5 px-4 whitespace-nowrap">
+                                          <span className="font-heading font-black text-[14.5px] sm:text-[15.5px] text-[#0f2854] bg-blue-50/90 px-2.5 py-1 rounded-md border border-blue-200/90 group-hover:border-blue-400 group-hover:bg-blue-100/70 transition-colors inline-block tracking-tight">
+                                            {entry.item.courseCode}
+                                          </span>
+                                        </td>
+
+                                        {/* 5. SUBJECT DESCRIPTION */}
+                                        <td className="py-3.5 px-4">
+                                          <div className="font-heading font-extrabold text-[13.5px] sm:text-[14.5px] text-[#0c1f38] leading-snug">
+                                            {entry.item.subject}
+                                          </div>
+                                        </td>
+
+                                        {/* 6. SECTION */}
+                                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                          <span className="font-sans font-black text-[12px] sm:text-[13px] text-blue-950 bg-white px-2.5 py-1 rounded-md border border-blue-200/90 shadow-2xs inline-block">
+                                            {entry.item.section.startsWith('SEC') ? entry.item.section : `SEC ${entry.item.section}`}
+                                          </span>
+                                        </td>
+
+                                        {/* 7. ROOM / VENUE */}
+                                        <td className="py-3.5 px-4 whitespace-nowrap">
+                                          <div className="flex items-center gap-1.5 font-bold text-[12.5px] sm:text-[13.5px] text-slate-800" title={entry.item.room}>
+                                            <svg className="w-3.5 h-3.5 text-blue-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            </svg>
+                                            <span className="truncate max-w-[200px]">{entry.item.room}</span>
+                                          </div>
+                                        </td>
+
+                                        {/* 8. TYPE */}
+                                        <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                                          <span className={`inline-block text-[10px] sm:text-[10.5px] px-2.5 py-1 rounded-full font-bold uppercase tracking-wide border shadow-2xs ${entry.typeInfo.badgeClass}`}>
+                                            {entry.typeInfo.label}
+                                          </span>
+                                        </td>
+                                      </tr>
                                     );
                                   })}
-                                </div>
-                              );
-                            })}
+                                </tbody>
+                              )}
+
+                              <tfoot>
+                                <tr className="bg-slate-50 border-t-2 border-blue-200/90 font-heading font-extrabold text-[12.5px] text-slate-700">
+                                  <td colSpan={2} className="py-3 px-4">
+                                    Showing <span className="text-[#0f2854] font-black">{filteredTabularItems.length}</span> scheduled class{filteredTabularItems.length === 1 ? '' : 'es'}
+                                  </td>
+                                  <td className="py-3 px-3 text-center">
+                                    <span className="font-black text-[#0f2854]">
+                                      {filteredTabularItems.reduce((acc, c) => acc + c.durationHours, 0).toFixed(1)} hrs
+                                    </span>
+                                  </td>
+                                  <td colSpan={5} className="py-3 px-4 text-right text-slate-500 font-medium text-[11.5px]">
+                                    💡 Click any row to view complete course & schedule details modal
+                                  </td>
+                                </tr>
+                              </tfoot>
+                            </table>
                           </div>
                         </div>
                       </div>
@@ -2657,11 +2867,10 @@ export default function App() {
                     key={day}
                     type="button"
                     onClick={() => setConsultationDayFilter(day)}
-                    className={`px-3 py-1.5 rounded-lg text-[12px] font-heading font-extrabold transition-all cursor-pointer shrink-0 ${
-                      consultationDayFilter === day
+                    className={`px-3 py-1.5 rounded-lg text-[12px] font-heading font-extrabold transition-all cursor-pointer shrink-0 ${consultationDayFilter === day
                         ? 'bg-[#0f2854] text-white shadow-2xs'
                         : 'bg-blue-50 text-blue-900 hover:bg-blue-100/80 border border-blue-200/60'
-                    }`}
+                      }`}
                   >
                     {day === 'ALL' ? 'All Days' : day}
                   </button>
@@ -2745,9 +2954,8 @@ export default function App() {
                           return (
                             <tr
                               key={`${fIdx}-${sIdx}`}
-                              className={`border-b border-slate-300 ${
-                                fIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'
-                              } hover:bg-blue-50/40 transition-colors`}
+                              className={`border-b border-slate-300 ${fIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'
+                                } hover:bg-blue-50/40 transition-colors`}
                             >
                               {isFirstSlot && (
                                 <td
