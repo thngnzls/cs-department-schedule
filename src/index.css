@@ -1,0 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Manrope:wght@200..800&display=swap');
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-body: 'DM Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-heading: 'Manrope', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  body {
+    font-family: var(--font-body);
+    background-color: #f2f7fd;
+    color: #0c1f38;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: var(--font-heading);
+  }
+}
+
+/* Background grid pattern */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(37, 99, 235, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(37, 99, 235, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Hide scrollbar for tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom pale blue scrollbar for timetable */
+.custom-timetable-scrollbar::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.custom-timetable-scrollbar::-webkit-scrollbar-track {
+  background: #f1f6fd;
+  border-radius: 9999px;
+}
+.custom-timetable-scrollbar::-webkit-scrollbar-thumb {
+  background: #bfdbfe;
+  border-radius: 9999px;
+  border: 2px solid #f1f6fd;
+}
+.custom-timetable-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #93c5fd;
+}
+
+/* Tab pseudo folder tab shape */
+.folder-tab {
+  position: relative;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.folder-tab::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -14px;
+  bottom: 0;
+  width: 28px;
+  background-color: inherit;
+  transform: skewX(24deg);
+  border-top-right-radius: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.folder-tab.active-tab::after {
+  background-color: #ffffff;
+  box-shadow: 6px -4px 12px -4px rgba(15, 40, 84, 0.08);
+}
+
+/* Animations */
+@keyframes contentFadeSlideUp {
+  0% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-content-switch {
+  animation: contentFadeSlideUp 280ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes eventCardAppear {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-event-card {
+  animation: eventCardAppear 320ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes modalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: modalFadeIn 200ms ease-out forwards;
+}
+
+.animate-scaleUp {
+  animation: modalScaleUp 250ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Accessible reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Print Specific Rules */
+@page {
+  size: landscape;
+  margin: 10mm;
+}
+
+@media print {
+  header, footer, .no-print {
+    display: none !important;
+  }
+  body {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .print-area {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+}
