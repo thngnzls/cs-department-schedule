@@ -859,6 +859,165 @@ export const professors: Professor[] = [
     ],
   },
   {
+    name: 'Mr. Allan A. Burgos',
+    title: 'CS Faculty',
+    schedule: [
+      // Monday
+      {
+        day: 'MON',
+        start: '09:30',
+        end: '11:30',
+        courseCode: 'CS 004',
+        subject: 'Networks and Communications',
+        section: 'CS31S3',
+        room: 'Lecture - Q-5415',
+      },
+      {
+        day: 'MON',
+        start: '12:30',
+        end: '13:30',
+        courseCode: 'IT 002',
+        subject: 'Information Assurance and Security 2',
+        section: 'IT41S6',
+        room: 'Lecture - Q-9212C',
+      },
+      {
+        day: 'MON',
+        start: '15:30',
+        end: '16:30',
+        courseCode: 'ITE 015',
+        subject: 'Social and Professional Issues',
+        section: 'IT41S4',
+        room: 'Lecture - Q-5212-J',
+      },
+      {
+        day: 'MON',
+        start: '16:30',
+        end: '17:30',
+        courseCode: 'IT 021',
+        subject: 'Usable Security',
+        section: 'IT31S4',
+        room: 'Lecture - Q-5208F',
+      },
+      {
+        day: 'MON',
+        start: '17:30',
+        end: '18:30',
+        courseCode: 'IT 002',
+        subject: 'Information Assurance and Security 2',
+        section: 'IT41S4',
+        room: 'Lecture - Q-5212-D',
+      },
+      {
+        day: 'MON',
+        start: '18:30',
+        end: '19:30',
+        courseCode: 'IT 021',
+        subject: 'Usable Security',
+        section: 'IT31S2',
+        room: 'Lecture - Q-5212-J',
+      },
+      // Tuesday
+      {
+        day: 'TUE',
+        start: '10:30',
+        end: '13:30',
+        courseCode: 'CS 004',
+        subject: 'Networks and Communications (Lab)',
+        section: 'CS31S3',
+        room: 'Laboratory - Q-5205',
+      },
+      // Thursday
+      {
+        day: 'THU',
+        start: '16:30',
+        end: '19:30',
+        courseCode: 'IT 021',
+        subject: 'Usable Security (Lab)',
+        section: 'IT31S2',
+        room: 'Laboratory - Q-3208',
+      },
+      {
+        day: 'THU',
+        start: '19:30',
+        end: '20:30',
+        courseCode: 'IT 021',
+        subject: 'Usable Security',
+        section: 'IT31S2',
+        room: 'Lecture - Q-3208',
+      },
+      // Friday
+      {
+        day: 'FRI',
+        start: '13:30',
+        end: '15:30',
+        courseCode: 'ITE 015',
+        subject: 'Social and Professional Issues',
+        section: 'IT41S4',
+        room: 'Lecture - Q-5307B',
+      },
+      {
+        day: 'FRI',
+        start: '16:30',
+        end: '19:30',
+        courseCode: 'IT 002',
+        subject: 'Information Assurance and Security 2 (Lab)',
+        section: 'IT41S4',
+        room: 'Laboratory - Q-9212',
+      },
+      {
+        day: 'FRI',
+        start: '19:30',
+        end: '20:30',
+        courseCode: 'IT 002',
+        subject: 'Information Assurance and Security 2',
+        section: 'IT41S4',
+        room: 'Lecture - Q-9212',
+      },
+      // Saturday
+      {
+        day: 'SAT',
+        start: '11:30',
+        end: '12:30',
+        courseCode: 'IT 002',
+        subject: 'Information Assurance and Security 2',
+        section: 'IT41S6',
+        room: 'Lecture - Q-9212',
+      },
+      {
+        day: 'SAT',
+        start: '12:30',
+        end: '15:30',
+        courseCode: 'IT 002',
+        subject: 'Information Assurance and Security 2 (Lab)',
+        section: 'IT41S6',
+        room: 'Laboratory - Q-9212',
+      },
+      {
+        day: 'SAT',
+        start: '15:30',
+        end: '16:30',
+        courseCode: 'IT 021',
+        subject: 'Usable Security',
+        section: 'IT31S4',
+        room: 'Lecture - Q-5208',
+      },
+      {
+        day: 'SAT',
+        start: '16:30',
+        end: '19:30',
+        courseCode: 'IT 021',
+        subject: 'Usable Security (Lab)',
+        section: 'IT31S4',
+        room: 'Laboratory - Q-5208',
+      },
+    ],
+  },
+];
+
+// ================= TEMPORARILY BENCHED FACULTY (CAN BE EASILY RESTORED BY MOVING BACK INTO `professors`) =================
+export const inactiveProfessors: Professor[] = [
+  {
     name: 'Prof. Monaliza C. Gregorio',
     title: 'CS Faculty',
     photo: photoGregorio,
@@ -1510,8 +1669,8 @@ function extractCleanRoom(rawRoom: string, day?: string): string {
     return isMonday ? 'Asynchronous' : '';
   }
 
-  // Extract room codes like Q-5310A, Q-5411D, Q-6212, Q-5215, Q-5203C, Q-5313, etc.
-  const qMatch = rawRoom.match(/Q-[0-9A-Za-z]+/i);
+  // Extract room codes like Q-5310A, Q-5411D, Q-6212, Q-5215, Q-5212-D, Q-5212-J, etc.
+  const qMatch = rawRoom.match(/Q-[0-9A-Za-z]+(?:-[0-9A-Za-z]+)?/i);
   if (qMatch) {
     return qMatch[0].toUpperCase();
   }
