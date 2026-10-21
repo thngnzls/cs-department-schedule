@@ -4,6 +4,7 @@ import photoBarcelos from './assets/professors/prof-elsa-barcelos.png';
 import photoCapule from './assets/professors/prof-janice-capule.png';
 import photoGarcia from './assets/professors/prof-jess-garcia.png';
 import photoGregorio from './assets/professors/prof-monaliza-gregorio.png';
+import photoBurgos from './assets/professors/mr-allan-burgos.jpg';
 
 // ================= EDIT PROFESSOR DATA ONLY BELOW =================
 export const professors: Professor[] = [
@@ -859,8 +860,9 @@ export const professors: Professor[] = [
     ],
   },
   {
-    name: 'Mr. Allan A. Burgos',
+    name: 'Prof. Allan A. Burgos',
     title: 'CS Faculty',
+    photo: photoBurgos,
     schedule: [
       // Monday
       {
@@ -2068,8 +2070,8 @@ export default function App() {
                 type="button"
                 onClick={() => setActiveTab('schedule')}
                 className={`flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg text-[12.5px] sm:text-[13.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'schedule'
-                    ? 'bg-[#0f2854] text-white shadow-xs'
-                    : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/60'
+                  ? 'bg-[#0f2854] text-white shadow-xs'
+                  : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/60'
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2085,8 +2087,8 @@ export default function App() {
                 type="button"
                 onClick={() => setActiveTab('consultation')}
                 className={`flex-1 sm:flex-none px-4 sm:px-5 py-2 rounded-lg text-[12.5px] sm:text-[13.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-2 cursor-pointer ${activeTab === 'consultation'
-                    ? 'bg-[#0f2854] text-white shadow-xs'
-                    : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/60'
+                  ? 'bg-[#0f2854] text-white shadow-xs'
+                  : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/60'
                   }`}
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2227,14 +2229,14 @@ export default function App() {
                         backgroundColor: isActive ? '#ffffff' : bgColor,
                       }}
                       className={`folder-tab relative flex items-center gap-2.5 px-3.5 sm:px-4 md:px-5 rounded-t-[14px] rounded-b-none transition-all duration-200 cursor-pointer select-none text-left shrink-0 min-w-[175px] sm:min-w-[195px] md:min-w-[215px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-inset ${isActive
-                          ? 'active-tab h-[68px] text-[#0c1f38] shadow-[0_-6px_20px_rgba(15,40,84,0.09)] z-30 font-bold border-t border-l border-blue-100/90'
-                          : 'h-[56px] hover:h-[62px] focus-visible:h-[62px] text-white/95 opacity-90 hover:opacity-100 shadow-xs z-10 font-medium'
+                        ? 'active-tab h-[68px] text-[#0c1f38] shadow-[0_-6px_20px_rgba(15,40,84,0.09)] z-30 font-bold border-t border-l border-blue-100/90'
+                        : 'h-[56px] hover:h-[62px] focus-visible:h-[62px] text-white/95 opacity-90 hover:opacity-100 shadow-xs z-10 font-medium'
                         }`}
                     >
                       <span
                         className={`font-heading text-[13px] md:text-[14px] font-extrabold px-1.5 py-0.5 rounded-md ${isActive
-                            ? 'bg-blue-100/80 text-[#0284c7]'
-                            : 'bg-white/20 text-white'
+                          ? 'bg-blue-100/80 text-[#0284c7]'
+                          : 'bg-white/20 text-white'
                           }`}
                       >
                         {twoDigitNum}
@@ -2325,8 +2327,8 @@ export default function App() {
                             type="button"
                             onClick={() => setScheduleFormat('grid')}
                             className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${scheduleFormat === 'grid'
-                                ? 'bg-[#0f2854] text-white shadow-xs'
-                                : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
+                              ? 'bg-[#0f2854] text-white shadow-xs'
+                              : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
                               }`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2338,8 +2340,8 @@ export default function App() {
                             type="button"
                             onClick={() => setScheduleFormat('table')}
                             className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${scheduleFormat === 'table' || scheduleFormat === 'blocks'
-                                ? 'bg-[#0f2854] text-white shadow-xs'
-                                : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
+                              ? 'bg-[#0f2854] text-white shadow-xs'
+                              : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
                               }`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2351,8 +2353,8 @@ export default function App() {
                             type="button"
                             onClick={() => setScheduleFormat('agenda')}
                             className={`flex-1 sm:flex-none px-3 sm:px-3.5 py-1.5 rounded-lg text-[11px] sm:text-[12.5px] font-heading font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${scheduleFormat === 'agenda'
-                                ? 'bg-[#0f2854] text-white shadow-xs'
-                                : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
+                              ? 'bg-[#0f2854] text-white shadow-xs'
+                              : 'text-blue-900/80 hover:text-[#0f2854] hover:bg-white/50'
                               }`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2396,8 +2398,8 @@ export default function App() {
                           type="button"
                           onClick={() => setSelectedDayFilter('ALL')}
                           className={`px-2.5 py-1.5 rounded-md text-[11px] font-heading font-extrabold transition-colors cursor-pointer shrink-0 ${selectedDayFilter === 'ALL'
-                              ? 'bg-[#0f2854] text-white shadow-2xs'
-                              : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
+                            ? 'bg-[#0f2854] text-white shadow-2xs'
+                            : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
                             }`}
                         >
                           ALL DAYS
@@ -2412,8 +2414,8 @@ export default function App() {
                               type="button"
                               onClick={() => setSelectedDayFilter(day)}
                               className={`px-2.5 py-1.5 rounded-md text-[11px] font-heading font-extrabold transition-colors cursor-pointer shrink-0 flex items-center gap-1 ${isFilterActive
-                                  ? 'bg-[#0284c7] text-white shadow-2xs'
-                                  : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
+                                ? 'bg-[#0284c7] text-white shadow-2xs'
+                                : 'bg-blue-50 text-blue-900 hover:bg-blue-100/70 border border-blue-200/60'
                                 }`}
                             >
                               <span>{day}</span>
@@ -3000,8 +3002,8 @@ export default function App() {
                     type="button"
                     onClick={() => setConsultationDayFilter(day)}
                     className={`px-3 py-1.5 rounded-lg text-[12px] font-heading font-extrabold transition-all cursor-pointer shrink-0 ${consultationDayFilter === day
-                        ? 'bg-[#0f2854] text-white shadow-2xs'
-                        : 'bg-blue-50 text-blue-900 hover:bg-blue-100/80 border border-blue-200/60'
+                      ? 'bg-[#0f2854] text-white shadow-2xs'
+                      : 'bg-blue-50 text-blue-900 hover:bg-blue-100/80 border border-blue-200/60'
                       }`}
                   >
                     {day === 'ALL' ? 'All Days' : day}
