@@ -487,7 +487,7 @@ export const professors: Professor[] = [
     ],
   },
   {
-    name: 'Mr. Allan A. Burgos',
+    name: 'Prof. Allan A. Burgos',
     title: 'CS Faculty',
     photo: photoBurgos,
     schedule: [
@@ -2015,7 +2015,7 @@ export default function App() {
                           {scheduleFormat === 'grid' ? 'WEEKLY TIME TABLE' : (scheduleFormat === 'table' || scheduleFormat === 'blocks') ? 'TABULAR SCHEDULE' : 'DAILY AGENDA TIMELINE'}
                         </span>
                         <h4 className="font-heading font-black text-[17px] sm:text-[20px] text-[#0c1f38] leading-tight">
-                          {scheduleFormat === 'grid' ? 'Monday to Saturday (6:30 AM – 8:30 PM)' : (scheduleFormat === 'table' || scheduleFormat === 'blocks') ? 'Class Schedule Table (No Vacant Gaps)' : 'Day-by-Day Schedule'}
+                          {scheduleFormat === 'grid' ? 'Monday to Saturday (7:30 AM – 8:00 PM)' : (scheduleFormat === 'table' || scheduleFormat === 'blocks') ? 'Class Schedule Table (No Vacant Gaps)' : 'Day-by-Day Schedule'}
                         </h4>
                       </div>
 
