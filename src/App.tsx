@@ -1553,6 +1553,16 @@ const CS_CONSULTATION_HOURS: FacultyConsultation[] = [
   },
   {
     id: 2,
+    name: 'BURGOS, ALLAN A.',
+    department: 'COMPUTER SCIENCE DEPARTMENT',
+    slots: [
+      { time: '1:30 PM - 3:30 PM', day: 'Tuesday' },
+      { time: '1:30 PM - 3:30 PM', day: 'Wednesday' },
+    ],
+    venue: 'Q-5212 FACULTY CONSULTATION ROOM',
+  },
+  {
+    id: 3,
     name: 'CAPULE, JANICE A.',
     department: 'COMPUTER SCIENCE DEPARTMENT',
     slots: [
@@ -1564,22 +1574,12 @@ const CS_CONSULTATION_HOURS: FacultyConsultation[] = [
     venue: 'Q-5212 FACULTY CONSULTATION ROOM',
   },
   {
-    id: 3,
+    id: 4,
     name: 'GARCIA, JESS N.',
     department: 'COMPUTER SCIENCE DEPARTMENT',
     slots: [
       { time: '3:30 PM - 4:30 PM', day: 'Monday' },
       { time: '7:30 AM - 10:30 AM', day: 'Thursday' },
-    ],
-    venue: 'Q-5212 FACULTY CONSULTATION ROOM',
-  },
-  {
-    id: 4,
-    name: 'GREGORIO, MONALIZA C.',
-    department: 'COMPUTER SCIENCE DEPARTMENT',
-    slots: [
-      { time: '10:30 AM - 12:30 PM', day: 'Thursday' },
-      { time: '10:30 AM - 12:30 PM', day: 'Friday' },
     ],
     venue: 'Q-5212 FACULTY CONSULTATION ROOM',
   },
@@ -1834,9 +1834,11 @@ export default function App() {
   const filteredConsultations = useMemo(() => {
     return CS_CONSULTATION_HOURS.filter((faculty) => {
       const q = consultationSearch.trim().toLowerCase();
+      const nameLower = faculty.name.toLowerCase();
       const matchSearch =
         !q ||
-        faculty.name.toLowerCase().includes(q) ||
+        nameLower.includes(q) ||
+        q.split(/\s+/).every((word) => nameLower.includes(word)) ||
         faculty.slots.some(
           (s) => s.day.toLowerCase().includes(q) || s.time.toLowerCase().includes(q)
         );
